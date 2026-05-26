@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dev Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#111213;--bg2:#1c1d1f;--bg3:#252729;--bg4:#2e3032;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.2);
+  --text:#e8e6e1;--text2:#9b9893;--text3:#5e5d5a;
+  --teal:#1D9E75;--teal-d:rgba(29,158,117,0.15);--teal-b:rgba(29,158,117,0.3);
+  --purple:#7F77DD;--purple-d:rgba(127,119,221,0.15);--purple-b:rgba(127,119,221,0.3);
+  --amber:#EF9F27;--amber-d:rgba(239,159,39,0.15);--amber-b:rgba(239,159,39,0.3);
+  --blue:#378ADD;--blue-d:rgba(55,138,221,0.15);--blue-b:rgba(55,138,221,0.3);
+  --coral:#D85A30;--coral-d:rgba(216,90,48,0.15);--coral-b:rgba(216,90,48,0.3);
+  --green:#639922;--gray:#888780;
+  --font:'Syne',sans-serif;--mono:'Space Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+
+/* HEADER */
+.header{padding:28px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+.header-left h1{font-size:24px;font-weight:800;letter-spacing:-0.8px;line-height:1}
+.header-left h1 span{color:var(--teal)}
+.header-left p{font-size:12px;color:var(--text3);margin-top:5px;letter-spacing:0.04em;text-transform:uppercase}
+.header-right{text-align:right}
+.live-clock{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:0.05em}
+.live-date{font-size:12px;color:var(--text3);margin-top:3px}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:20px 28px 0}
+.tab-btn{padding:9px 22px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);
+  font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:0.02em;}
+.tab-btn:hover{background:var(--bg2);color:var(--text);border-color:var(--border3)}
+.tab-btn.active{background:var(--bg3);border-color:var(--border3);color:var(--text)}
+
+/* CONTENT */
+.content{padding:20px 28px 48px}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* NOW BANNER */
+.now-banner{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:12px;padding:16px 20px;margin-bottom:18px;gap:12px;}
+.now-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:5px}
+.now-name{font-size:17px;font-weight:700}
+.now-right{text-align:right}
+.now-time{font-family:var(--mono);font-size:12px;color:var(--text2)}
+.now-day{font-size:12px;color:var(--text3);margin-top:3px}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column;gap:4px}
+.tl-item{display:flex;align-items:flex-start;gap:12px;padding:9px 12px;border-radius:10px;border:1px solid transparent;
+  transition:all .15s;}
+.tl-item:hover{background:var(--bg2);border-color:var(--border)}
+.tl-item.active-block{background:var(--teal-d);border-color:var(--teal-b)}
+.tl-time{width:98px;flex-shrink:0;font-family:var(--mono);font-size:10px;color:var(--text3);padding-top:3px;line-height:1.4}
+.tl-track{display:flex;flex-direction:column;align-items:center;width:14px;flex-shrink:0;padding-top:4px}
+.tl-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:box-shadow .2s}
+.tl-item.active-block .tl-dot{box-shadow:0 0 0 4px rgba(29,158,117,0.25)}
+.tl-line{width:1px;flex:1;min-height:16px;background:var(--border);margin-top:3px}
+.tl-body{flex:1;min-width:0}
+.tl-name{font-size:14px;font-weight:600;margin-bottom:2px;line-height:1.3}
+.tl-sub{font-size:12px;color:var(--text3);line-height:1.4}
+
+/* WEEKLY */
+.section-hint{font-size:12px;color:var(--text3);margin-bottom:14px}
+.week-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;margin-bottom:16px}
+.day-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 14px;cursor:pointer;
+  transition:all .15s;position:relative;overflow:hidden;}
+.day-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .15s}
+.day-card.today::before{background:var(--teal)}
+.day-card:hover{background:var(--bg3);border-color:var(--border2)}
+.day-card.selected{background:var(--bg3);border-color:var(--border3)}
+.day-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.day-name-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2)}
+.day-card.today .day-name-label{color:var(--teal)}
+.today-tag{font-size:9px;font-family:var(--mono);background:var(--teal-d);color:var(--teal);padding:2px 6px;border-radius:4px;border:1px solid var(--teal-b)}
+.focus-label{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-bottom:4px}
+.focus-badge{display:inline-block;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-bottom:8px;}
+
+/* DAY DETAIL */
+.day-detail{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:18px 20px;margin-top:4px;}
+.detail-day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.detail-day-name{font-size:15px;font-weight:700}
+.detail-day-sub{font-size:12px;color:var(--text3)}
+.detail-rows{display:flex;flex-direction:column;gap:8px}
+.detail-row{display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:8px;padding:10px 14px;}
+.detail-row-time{font-family:var(--mono);font-size:10px;color:var(--text3);width:120px;flex-shrink:0}
+.detail-row-name{flex:1;font-size:13px;font-weight:600}
+.detail-row-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:4px;border:1px solid;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+
+/* PROJECTS */
+.projects-list{display:flex;flex-direction:column;gap:7px}
+.proj-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s;}
+.proj-card:hover{border-color:var(--border2)}
+.proj-header{display:flex;align-items:center;gap:13px;padding:15px 20px;cursor:pointer;user-select:none;transition:background .15s;}
+.proj-header:hover{background:var(--bg3)}
+.proj-num{font-family:var(--mono);font-size:11px;color:var(--text3);width:18px;flex-shrink:0}
+.proj-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.proj-name{flex:1;font-size:15px;font-weight:700}
+.proj-badge{font-size:10px;font-weight:600;padding:4px 11px;border-radius:20px;border:1px solid;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+.proj-chevron{font-size:13px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.proj-card.open .proj-chevron{transform:rotate(180deg)}
+.proj-details{display:none;padding:0 20px 18px;border-top:1px solid var(--border);}
+.proj-card.open .proj-details{display:block}
+.proj-details-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:16px;}
+.proj-detail-block{background:var(--bg3);border-radius:8px;padding:12px 14px;}
+.proj-detail-block.full{grid-column:1/-1}
+.proj-detail-title{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px;}
+.proj-detail-val{font-size:13px;color:var(--text);line-height:1.5}
+.proj-detail-val code{font-family:var(--mono);font-size:11px}
+.proj-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.proj-tag{font-size:11px;padding:3px 9px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Dev <span>Schedule</span></h1>
+    <p>Game Dev · Freelancer · Student</p>
+  </div>
+  <div class="header-right">
+    <div class="live-clock" id="liveClock">00:00:00</div>
+    <div class="live-date" id="liveDate">—</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('daily',this)">Daily Routine</button>
+  <button class="tab-btn" onclick="switchTab('weekly',this)">Weekly Focus</button>
+  <button class="tab-btn" onclick="switchTab('projects',this)">Projects</button>
+</div>
+
+<div class="content">
+  <!-- Daily Tab -->
+  <div class="tab-panel active" id="tab-daily">
+    <div class="now-banner">
+      <div>
+        <div class="now-label">Right now</div>
+        <div class="now-name" id="nowName">Loading…</div>
+      </div>
+      <div class="now-right">
+        <div class="now-time" id="nowTime">—</div>
+        <div class="now-day" id="nowDay">—</div>
+      </div>
+    </div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <!-- Weekly Tab -->
+  <div class="tab-panel" id="tab-weekly">
+    <p class="section-hint">Tap any day to see the full session breakdown</p>
+    <div class="week-grid" id="weekGrid"></div>
+    <div class="day-detail" id="dayDetail" style="display:none"></div>
+  </div>
+
+  <!-- Projects Tab -->
+  <div class="tab-panel" id="tab-projects">
+    <div class="projects-list" id="projectsList"></div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+
+const EVENING_TEMPLATE = [
+  { key:'main', sh:21, sm:0, eh:22, em:30, type:'work', color:'#1D9E75' },
+  { key:'uni',  sh:22, sm:30, eh:23, em:30, type:'university', color:'#7F77DD' },
+  { key:'sec',  sh:23, sm:30, eh:24, em:0, type:'secondary', color:'#EF9F27' },
+];
+
+
+function buildDailyBlocks(dayName){
+  const f = WEEKLY[dayName];
+
+  return [
+    {sh:0, sm:0, eh:5, em:0, label:'Sleep', sub:'12:00 AM – 5:00 AM', type:'sleep', color:'#5e5d5a'},
+    {sh:5, sm:0, eh:5, em:30, label:'Wake Up',sub:'Start of day', type:'routine', color:'#888780'},
+    {sh:5, sm:30,eh:6, em:15, label:'Workout / Exercise',sub:'Strength training, cardio & stretching', type:'health', color:'#639922'},
+    {sh:6, sm:15,eh:7, em:0, label:'Breakfast + Prepare',sub:'Eat and get ready for the day',type:'routine',color:'#888780'},
+    {sh:7, sm:0, eh:16,em:0, label:'Class / School',sub:'No class? → rest, study, or freelance tasks',type:'school',color:'#378ADD'},
+    {sh:16,sm:0, eh:17,em:0, label:'Free Time / Gap',sub:'Wind down between school and evening',type:'gap',color:'#5e5d5a'},
+    {sh:17,sm:0, eh:19,em:0, label:'Dinner + Rest',sub:'Recharge before evening work',type:'routine',color:'#888780'},
+    {sh:20,sm:0, eh:20,em:30, label:'Learn Chinese',sub:'Study vocabulary, listening, and speaking practice',type:'learning',color:'#6C63FF'},
+    // dynamic evening blocks
+    {
+      sh:21,sm:0,eh:23,em:30,
+      label:f.main,
+      sub:'Highest-priority project — full focus block',
+      type:f.mainType,
+      color:PROJ_COLORS[f.mainType] || '#1D9E75'
+    },
+    {
+      sh:23,sm:30,eh:24,em:0,
+      label:f.sec,
+      sub:'Secondary project / planning',
+      type:f.secType,
+      color:PROJ_COLORS[f.secType] || '#EF9F27'
+    }
+  ];
+}
+
+const WEEKLY = {
+  Monday: {main:'Second Chance', mainType:'work', sec:'Paragon University', secType:'university'},
+  Tuesday: {main:'Second Chance', mainType:'work', sec:'Ashes', secType:'ashes'},
+  Wednesday: {main:'Second Chance', mainType:'work', sec:'Paragon University', secType:'university'},
+  Thursday: {main:'Ashes', mainType:'ashes', sec:'PHKitchenDuo', secType:'kitchen'},
+  Friday: {main:'Second Chance', mainType:'work', sec:'Personal Horror Game',secType:'horror'},
+  Saturday: {main:'Personal Horror Game',mainType:'horror', sec:'Ashes', secType:'ashes'},
+  Sunday: {main:'Rest / Planning', mainType:'rest', sec:'Small Tasks', secType:'rest'},
+};
+
+const PROJ_COLORS = {work:'#1D9E75',university:'#7F77DD',ashes:'#EF9F27',kitchen:'#378ADD',horror:'#D85A30',rest:'#888780'};
+
+const PROJECTS = [
+  {num:1,name:'Second Chance',priority:'Highest Priority',type:'work',color:'#1D9E75',engine:'Unreal Engine 5.7',team:'Solo developer',client:'Self-funded',sched:'4–5 days/week',focus:'You are handling everything alone — coding, assets, design. This deserves the most focused time and energy in your schedule.',tags:['Coding-heavy','Resources available','Solo dev']},
+  {num:2,name:'Paragon University Project',priority:'High Priority',type:'university',color:'#7F77DD',engine:'School / University',team:'Academic project',client:'University deadline',sched:'2-3 days/weeek',focus:'Treat this as a required daily responsibility, not a side task. Scale up time significantly during deadline weeks.',tags:['Academic','Deadlines','Required']},
+  {num:3,name:'Ashes',priority:'Medium Priority',type:'ashes',color:'#EF9F27',engine:'Unreal Engine 5.3',team:'2 developers',client:'Client-provided resources',sched:'2–3 days/week · Secondary work block when needed',focus:'Medium priority because the workload is shared. Coordinate with your co-dev to avoid bottlenecks.',tags:['Shared workload','Client resources','2 devs']},
+  {num:4,name:'PHKitchenDuo',priority:'Low Priority',type:'kitchen',color:'#378ADD',engine:'Unity 2022.3',team:'Team project',client:'Team-owned',sched:'1–2 sessions per week only',focus:'Your responsibility is scoped to a single feature or task. Don\'t over-invest — stay focused on your one deliverable.',tags:['One feature','Team project','Limited scope']},
+  {num:5,name:'Personal Horror Game',priority:'Long-Term',type:'horror',color:'#D85A30',engine:'Unreal Engine 5',team:'Solo developer',client:'Self-funded',sched:'Fri night + Sat + Sun · Max 6–8 hours/week',focus:'This is your passion project and portfolio piece. Work on it when inspired — don\'t force daily sessions. Quality over grind.',tags:['Passion project','Portfolio','Solo dev']},
+];
+
+// ==================== HELPERS ====================
+function toMins(h,m){return h*60+m}
+function fmtH(h, m){
+  const ap = h >= 12 ? 'PM' : 'AM';
+  let hh = h % 12;
+  if (hh === 0) hh = 12;
+  return `${hh}:${String(m).padStart(2,'0')} ${ap}`;
+}
+function nowMins(){const n=new Date();return n.getHours()*60 + n.getMinutes();}
+
+function getActiveBlock(blocks){
+  const m = nowMins();
+
+  for(const b of blocks){
+    const s = toMins(b.sh,b.sm);
+    const e = toMins(b.eh,b.em);
+
+    if(b.label === 'Sleep'){
+      if(m < 300) return b;
+    } else if(m >= s && m < e){
+      return b;
+    }
+  }
+  return null;
+}
+
+function normalizeHour(h){
+  return h === 24 ? 0 : h;
+}
+
+// ==================== RENDER FUNCTIONS ====================
+function renderTimeline(){
+  const dayName =
+    ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    [new Date().getDay()];
+
+  const BLOCKS = buildDailyBlocks(dayName);
+  const tl = document.getElementById('timeline');
+  const active = getActiveBlock(BLOCKS);
+
+  const display = BLOCKS.slice(1);
+  display.push(BLOCKS[0]);
+
+  tl.innerHTML = display.map((b,i)=>{
+    const isLast = i === display.length - 1;
+    const isActive = active && active.label === b.label;
+
+    const startLabel = b.label === 'Sleep'
+      ? '12:00 AM'
+      : fmtH(b.sh,b.sm);
+
+    const endLabel = b.label === 'Sleep'
+      ? '5:00 AM'
+      : fmtH(normalizeHour(b.eh), b.em);
+
+    return `
+      <div class="tl-item${isActive ? ' active-block' : ''}">
+        <div class="tl-time">
+          ${startLabel}<br>
+          <span style="color:var(--bg4)">─</span><br>
+          ${endLabel}
+        </div>
+
+        <div class="tl-track">
+          <div class="tl-dot" style="background:${b.color}"></div>
+          ${!isLast ? '<div class="tl-line"></div>' : ''}
+        </div>
+
+        <div class="tl-body">
+          <div class="tl-name" style="color:${isActive ? b.color : 'var(--text)'}">
+            ${b.label}
+          </div>
+          <div class="tl-sub">${b.sub}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updateNowBanner(){
+  const dayName =
+    ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    [new Date().getDay()];
+
+  const BLOCKS = buildDailyBlocks(dayName);
+  const b = getActiveBlock(BLOCKS);
+
+  const nameEl = document.getElementById('nowName');
+  const timeEl = document.getElementById('nowTime');
+
+  if(b){
+    nameEl.style.color = b.color;
+    nameEl.textContent = b.label;
+
+    const end = b.label === 'Sleep'
+      ? '5:00 AM'
+      : (b.eh === 24 ? '12:00 AM' : fmtH(b.eh,b.em));
+
+    timeEl.textContent = `Until ${end}`;
+  } else {
+    nameEl.style.color = 'var(--text2)';
+    nameEl.textContent = 'Free Time';
+    timeEl.textContent = '—';
+  }
+}
+
+function renderWeekly(){
+  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = Object.keys(WEEKLY).map(day=>{
+    const f = WEEKLY[day];
+    const isToday = day === todayName;
+    const mc = PROJ_COLORS[f.mainType] || '#888';
+    const sc = PROJ_COLORS[f.secType] || '#888';
+    return `<div class="day-card${isToday?' today':''}" onclick="selectDay('${day}',this)">
+      <div class="day-head">
+        <span class="day-name-label">${day.substring(0,3)}</span>
+        ${isToday?'<span class="today-tag">Today</span>':''}
+      </div>
+      <div class="focus-label">Main Focus</div>
+      <div class="focus-badge" style="background:${mc}22;color:${mc};border-color:${mc}44">${f.main}</div>
+      <div class="focus-label">Secondary</div>
+      <div class="focus-badge" style="background:${sc}22;color:${sc};border-color:${sc}44">${f.sec}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectDay(day, el){
+  document.querySelectorAll('.day-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  renderDayDetail(day);
+}
+
+function renderDayDetail(day){
+  const detail = document.getElementById('dayDetail');
+  const f = WEEKLY[day];
+  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const isToday = day === todayName;
+  const mc = PROJ_COLORS[f.mainType] || '#888';
+  const sc = PROJ_COLORS[f.secType] || '#888';
+  const uc = '#7F77DD';
+
+  detail.style.display = 'block';
+  detail.innerHTML = `
+    <div class="detail-day-header">
+      <div class="detail-day-name">${day}${isToday?' <span style="font-size:11px;color:var(--teal);font-family:var(--mono)">[today]</span>':''}</div>
+      <div class="detail-day-sub">Evening work session breakdown</div>
+    </div>
+    <div class="detail-rows">
+      <div class="detail-row">
+        <div class="detail-row-time">9:00 PM – 11:30 PM</div>
+        <div class="detail-row-name" style="color:${mc}">${f.main}</div>
+        <div class="detail-row-badge" style="color:${mc};background:${mc}22;border-color:${mc}44">Main Focus</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-row-time">11:30 PM – 12:00 AM</div>
+        <div class="detail-row-name" style="color:${sc}">${f.sec}</div>
+        <div class="detail-row-badge" style="color:${sc};background:${sc}22;border-color:${sc}44">Secondary</div>
+      </div>
+    </div>`;
+}
+
+function renderProjects(){
+  const container = document.getElementById('projectsList');
+  container.innerHTML = PROJECTS.map(p => {
+    const c = p.color;
+    return `<div class="proj-card" id="proj-${p.num}">
+      <div class="proj-header" onclick="toggleProject(${p.num})">
+        <div class="proj-num">#${p.num}</div>
+        <div class="proj-dot" style="background:${c}"></div>
+        <div class="proj-name" style="color:${c}">${p.name}</div>
+        <div class="proj-badge" style="color:${c};background:${c}22;border-color:${c}44">${p.priority}</div>
+        <div class="proj-chevron">▾</div>
+      </div>
+      <div class="proj-details">
+        <div class="proj-details-grid">
+          <div class="proj-detail-block"><div class="proj-detail-title">Engine / Platform</div><div class="proj-detail-val"><code style="color:${c}">${p.engine}</code></div></div>
+          <div class="proj-detail-block"><div class="proj-detail-title">Team</div><div class="proj-detail-val">${p.team}</div></div>
+          <div class="proj-detail-block"><div class="proj-detail-title">Recommended Schedule</div><div class="proj-detail-val">${p.sched}</div></div>
+          <div class="proj-detail-block"><div class="proj-detail-title">Tags</div><div class="proj-tags">${p.tags.map(t=>`<span class="proj-tag" style="background:${c}22;color:${c}">${t}</span>`).join('')}</div></div>
+          <div class="proj-detail-block full"><div class="proj-detail-title">Focus Note</div><div class="proj-detail-val">${p.focus}</div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleProject(num){
+  document.getElementById(`proj-${num}`).classList.toggle('open');
+}
+
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ==================== CLOCK ====================
+function tick(){
+  const now = new Date();
+  let h = now.getHours();
+const ap = h >= 12 ? 'PM' : 'AM';
+h = h % 12;
+if (h === 0) h = 12;
+
+const hh = String(h).padStart(2,'0');
+const m = String(now.getMinutes()).padStart(2,'0');
+const s = String(now.getSeconds()).padStart(2,'0');
+
+document.getElementById('liveClock').textContent = `${hh}:${m}:${s} ${ap}`;
+document.getElementById('liveDate').textContent =
+  `${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()]}, ` +
+  `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()]} ${now.getDate()}`;
+
+  updateNowBanner();
+}
+
+// ==================== INIT ====================
+renderTimeline();
+renderWeekly();
+renderProjects();
+tick();
+setInterval(tick, 1000);
+setInterval(renderTimeline, 60000);
+</script>
+</body>
+</html>

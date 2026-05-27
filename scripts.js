@@ -61,8 +61,8 @@ window.addEventListener("load", async () => {
   setInterval(renderTimeline, 60000);
 
   await initGoogleCalendar();
+  syncRecurringRoutineToGoogle();
 });
-
 async function initGoogleCalendar() {
   if (!window.gapi || !window.google) {
     console.warn("Google API scripts not loaded yet.");

@@ -2,12 +2,14 @@
 
 const CLIENT_ID =
   "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
-
 const API_KEY = "AIzaSyD__3OJHOVkVvvDGiUjqg__zqcCH9pYAU0";
 
 const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
+
+// Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
 
 let tokenClient;
 let devScheduleCalendarId = null;
@@ -50,22 +52,28 @@ function initGoogleCalendar() {
         scope: SCOPES,
         callback: async (response) => {
           if (response.error) {
-            console.error("Google login failed:", response);
+            console.error(response);
             alert("Google login failed.");
             return;
           }
 
           try {
+            if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
+              await deleteDevScheduleCalendar();
+              alert(
+                "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
+              );
+              return;
+            }
+
             devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
-
-            await deleteAllEventsFromDevScheduleCalendar();
-
+            await deleteAllDevScheduleEvents();
             await createRecurringRoutineEvents();
 
-            alert("Dev Schedule calendar synced successfully.");
+            alert("Dev Schedule recurring calendar synced.");
           } catch (err) {
             console.error("Sync error:", err);
-            alert("Sync error. Check console.");
+            alert("Sync error. Check browser console.");
           }
         },
       });
@@ -76,27 +84,18 @@ function initGoogleCalendar() {
 }
 
 function syncRecurringRoutineToGoogle() {
-  if (!tokenClient) {
-    console.error("Google token client not ready.");
-    return;
-  }
-
+  if (!tokenClient) return;
   tokenClient.requestAccessToken({ prompt: "" });
 }
 
 async function getOrCreateDevScheduleCalendar() {
-  const calendars = await gapi.client.calendar.calendarList.list({
-    maxResults: 250,
-  });
+  const calendars = await gapi.client.calendar.calendarList.list();
 
-  const existing = (calendars.result.items || []).find(
+  const existing = calendars.result.items.find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
-  if (existing) {
-    console.log("Existing Dev Schedule calendar found:", existing.id);
-    return existing.id;
-  }
+  if (existing) return existing.id;
 
   const created = await gapi.client.calendar.calendars.insert({
     resource: {
@@ -105,11 +104,27 @@ async function getOrCreateDevScheduleCalendar() {
     },
   });
 
-  console.log("New Dev Schedule calendar created:", created.result.id);
   return created.result.id;
 }
 
-async function deleteAllEventsFromDevScheduleCalendar() {
+async function deleteDevScheduleCalendar() {
+  const calendars = await gapi.client.calendar.calendarList.list();
+
+  const existing = calendars.result.items.find(
+    (calendar) => calendar.summary === CALENDAR_NAME,
+  );
+
+  if (!existing) {
+    alert("No Dev Schedule calendar found.");
+    return;
+  }
+
+  await gapi.client.calendar.calendars.delete({
+    calendarId: existing.id,
+  });
+}
+
+async function deleteAllDevScheduleEvents() {
   let pageToken = null;
 
   do {
@@ -117,7 +132,6 @@ async function deleteAllEventsFromDevScheduleCalendar() {
       calendarId: devScheduleCalendarId,
       maxResults: 2500,
       singleEvents: false,
-      showDeleted: false,
       pageToken,
     });
 
@@ -160,7 +174,6 @@ function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
-
   return `${y}-${m}-${d}`;
 }
 
@@ -205,18 +218,13 @@ async function insertRecurringEvent(dayName, block) {
 }
 
 async function createRecurringRoutineEvents() {
-  let created = 0;
-
   for (const dayName of Object.keys(WEEKLY)) {
     const blocks = buildDailyBlocks(dayName);
 
     for (const block of blocks) {
       await insertRecurringEvent(dayName, block);
-      created++;
     }
   }
-
-  console.log(`Created ${created} recurring events.`);
 }
 // ==================== DATA ====================
 

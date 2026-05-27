@@ -2,7 +2,9 @@
 
 const CLIENT_ID =
   "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
+
 const API_KEY = "AIzaSyD__3OJHOVkVvvDGiUjqg__zqcCH9pYAU0";
+
 const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
@@ -44,7 +46,7 @@ function initGoogleCalendar() {
           }
 
           devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
-          await createDailyRoutineEvents();
+          await createTodayRoutineEvents();
         },
       });
 
@@ -69,9 +71,7 @@ async function getOrCreateDevScheduleCalendar() {
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
-  if (existing) {
-    return existing.id;
-  }
+  if (existing) return existing.id;
 
   const created = await gapi.client.calendar.calendars.insert({
     resource: {
@@ -83,8 +83,8 @@ async function getOrCreateDevScheduleCalendar() {
   return created.result.id;
 }
 
-function getNextDateForDay(dayName) {
-  const days = [
+function getTodayName() {
+  return [
     "Sunday",
     "Monday",
     "Tuesday",
@@ -92,35 +92,20 @@ function getNextDateForDay(dayName) {
     "Thursday",
     "Friday",
     "Saturday",
-  ];
+  ][new Date().getDay()];
+}
 
-  const today = new Date();
-  const target = days.indexOf(dayName);
-  const diff = (target - today.getDay() + 7) % 7;
-
-  const d = new Date(today);
-  d.setDate(today.getDate() + diff);
+function getTodayDate() {
+  const d = new Date();
   d.setHours(0, 0, 0, 0);
-
   return d;
 }
 
-function makeDateTime(baseDate, hour, minute) {
+function makeDateTime(baseDate, hour, minute, addDays = 0) {
   const d = new Date(baseDate);
+  d.setDate(d.getDate() + addDays);
   d.setHours(hour, minute, 0, 0);
   return d.toISOString();
-}
-
-function getWeekStartDate() {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + 1;
-
-  const monday = new Date(now);
-  monday.setDate(diff);
-  monday.setHours(0, 0, 0, 0);
-
-  return monday.toISOString().slice(0, 10);
 }
 
 function slugify(text) {
@@ -134,12 +119,9 @@ function slugify(text) {
     .replace(/^-|-$/g, "");
 }
 
-function makeScheduleEventId(dayName, block) {
-  const weekStart = getWeekStartDate();
-
-  return `dev-schedule-${weekStart}-${dayName.toLowerCase()}-${slugify(
-    block.label,
-  )}`;
+function makeScheduleEventId(date, block) {
+  const dateKey = date.toISOString().slice(0, 10);
+  return `dev-schedule-${dateKey}-${slugify(block.label)}`;
 }
 
 async function eventAlreadyExists(privateId) {
@@ -152,57 +134,60 @@ async function eventAlreadyExists(privateId) {
   return result.result.items && result.result.items.length > 0;
 }
 
-async function createDailyRoutineEvents() {
+async function createTodayRoutineEvents() {
   let created = 0;
   let skipped = 0;
 
-  for (const dayName of Object.keys(WEEKLY)) {
-    const day = getNextDateForDay(dayName);
-    const blocks = buildDailyBlocks(dayName);
+  const todayName = getTodayName();
+  const todayDate = getTodayDate();
+  const blocks = buildDailyBlocks(todayName);
 
-    for (const block of blocks) {
-      const privateId = makeScheduleEventId(dayName, block);
-      const exists = await eventAlreadyExists(privateId);
+  for (const block of blocks) {
+    const privateId = makeScheduleEventId(todayDate, block);
+    const exists = await eventAlreadyExists(privateId);
 
-      if (exists) {
-        skipped++;
-        continue;
-      }
+    if (exists) {
+      skipped++;
+      continue;
+    }
 
-      const startHour = block.sh;
-      const endHour = block.eh === 24 ? 0 : block.eh;
+    let endAddDays = 0;
+    let endHour = block.eh;
 
-      const start = makeDateTime(day, startHour, block.sm);
-      const end = makeDateTime(day, endHour, block.em);
+    // Fix 11:30 PM – 12:00 AM
+    if (block.eh === 24) {
+      endHour = 0;
+      endAddDays = 1;
+    }
 
-      await gapi.client.calendar.events.insert({
-        calendarId: devScheduleCalendarId,
-        resource: {
-          summary: block.label,
-          description: block.sub || "From Dev Schedule",
-          start: {
-            dateTime: start,
-            timeZone: TIME_ZONE,
-          },
-          end: {
-            dateTime: end,
-            timeZone: TIME_ZONE,
-          },
-          extendedProperties: {
-            private: {
-              devScheduleId: privateId,
-            },
+    const start = makeDateTime(todayDate, block.sh, block.sm);
+    const end = makeDateTime(todayDate, endHour, block.em, endAddDays);
+
+    await gapi.client.calendar.events.insert({
+      calendarId: devScheduleCalendarId,
+      resource: {
+        summary: block.label,
+        description: block.sub || "From Dev Schedule",
+        start: {
+          dateTime: start,
+          timeZone: TIME_ZONE,
+        },
+        end: {
+          dateTime: end,
+          timeZone: TIME_ZONE,
+        },
+        extendedProperties: {
+          private: {
+            devScheduleId: privateId,
           },
         },
-      });
+      },
+    });
 
-      created++;
-    }
+    created++;
   }
 
-  alert(
-    `Dev Schedule calendar synced. Created: ${created}, Skipped: ${skipped}`,
-  );
+  alert(`Today synced. Created: ${created}, Skipped: ${skipped}`);
 }
 
 // ==================== DATA ====================

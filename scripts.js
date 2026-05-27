@@ -9,7 +9,7 @@ const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
 // Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
 
 let tokenClient;
 let devScheduleCalendarId = null;
@@ -23,6 +23,31 @@ const DAY_CODES = {
   Saturday: "SA",
   Sunday: "SU",
 };
+
+const DAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 window.onload = async () => {
   renderTimeline();
@@ -149,18 +174,8 @@ async function deleteAllDevScheduleEvents() {
 }
 
 function getNextDateForDay(dayName) {
-  const days = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ];
-
   const today = new Date();
-  const target = days.indexOf(dayName);
+  const target = DAY_NAMES.indexOf(dayName);
   const diff = (target - today.getDay() + 7) % 7;
 
   const d = new Date(today);
@@ -204,6 +219,7 @@ async function insertRecurringEvent(dayName, block) {
     resource: {
       summary: block.label,
       description: block.sub || "From Dev Schedule",
+      colorId: block.googleColorId || undefined,
       start: {
         dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
         timeZone: TIME_ZONE,
@@ -226,37 +242,23 @@ async function createRecurringRoutineEvents() {
     }
   }
 }
+
 // ==================== DATA ====================
 
-const EVENING_TEMPLATE = [
-  {
-    key: "main",
-    sh: 21,
-    sm: 0,
-    eh: 22,
-    em: 30,
-    type: "work",
-    color: "#1D9E75",
-  },
-  {
-    key: "uni",
-    sh: 22,
-    sm: 30,
-    eh: 23,
-    em: 30,
-    type: "university",
-    color: "#7F77DD",
-  },
-  {
-    key: "sec",
-    sh: 23,
-    sm: 30,
-    eh: 24,
-    em: 0,
-    type: "secondary",
-    color: "#EF9F27",
-  },
-];
+const GOOGLE_COLOR_IDS = {
+  sleep: "8", // gray
+  routine: "8", // gray
+  health: "10", // green
+  school: "9", // blue
+  gap: "8", // gray
+  learning: "3", // purple
+  work: "2", // green
+  university: "3", // purple
+  ashes: "6", // orange
+  kitchen: "9", // blue
+  horror: "11", // red
+  rest: "8", // gray
+};
 
 function buildDailyBlocks(dayName) {
   const f = WEEKLY[dayName];
@@ -271,6 +273,7 @@ function buildDailyBlocks(dayName) {
       sub: "12:00 AM – 5:00 AM",
       type: "sleep",
       color: "#5e5d5a",
+      googleColorId: GOOGLE_COLOR_IDS.sleep,
     },
     {
       sh: 5,
@@ -281,6 +284,7 @@ function buildDailyBlocks(dayName) {
       sub: "Start of day",
       type: "routine",
       color: "#888780",
+      googleColorId: GOOGLE_COLOR_IDS.routine,
     },
     {
       sh: 5,
@@ -291,6 +295,7 @@ function buildDailyBlocks(dayName) {
       sub: "Strength training, cardio & stretching",
       type: "health",
       color: "#639922",
+      googleColorId: GOOGLE_COLOR_IDS.health,
     },
     {
       sh: 6,
@@ -301,6 +306,7 @@ function buildDailyBlocks(dayName) {
       sub: "Eat and get ready for the day",
       type: "routine",
       color: "#888780",
+      googleColorId: GOOGLE_COLOR_IDS.routine,
     },
     {
       sh: 7,
@@ -311,6 +317,7 @@ function buildDailyBlocks(dayName) {
       sub: "No class? → rest, study, or freelance tasks",
       type: "school",
       color: "#378ADD",
+      googleColorId: GOOGLE_COLOR_IDS.school,
     },
     {
       sh: 16,
@@ -321,6 +328,7 @@ function buildDailyBlocks(dayName) {
       sub: "Wind down between school and evening",
       type: "gap",
       color: "#5e5d5a",
+      googleColorId: GOOGLE_COLOR_IDS.gap,
     },
     {
       sh: 17,
@@ -331,6 +339,7 @@ function buildDailyBlocks(dayName) {
       sub: "Recharge before evening work",
       type: "routine",
       color: "#888780",
+      googleColorId: GOOGLE_COLOR_IDS.routine,
     },
     {
       sh: 20,
@@ -341,8 +350,8 @@ function buildDailyBlocks(dayName) {
       sub: "Study vocabulary, listening, and speaking practice",
       type: "learning",
       color: "#6C63FF",
+      googleColorId: GOOGLE_COLOR_IDS.learning,
     },
-    // dynamic evening blocks
     {
       sh: 21,
       sm: 0,
@@ -352,6 +361,7 @@ function buildDailyBlocks(dayName) {
       sub: "Highest-priority project — full focus block",
       type: f.mainType,
       color: PROJ_COLORS[f.mainType] || "#1D9E75",
+      googleColorId: GOOGLE_COLOR_IDS[f.mainType] || GOOGLE_COLOR_IDS.work,
     },
     {
       sh: 23,
@@ -362,6 +372,7 @@ function buildDailyBlocks(dayName) {
       sub: "Secondary project / planning",
       type: f.secType,
       color: PROJ_COLORS[f.secType] || "#EF9F27",
+      googleColorId: GOOGLE_COLOR_IDS[f.secType] || GOOGLE_COLOR_IDS.rest,
     },
   ];
 }
@@ -444,7 +455,7 @@ const PROJECTS = [
     engine: "School / University",
     team: "Academic project",
     client: "University deadline",
-    sched: "2-3 days/weeek",
+    sched: "2–3 days/week",
     focus:
       "Treat this as a required daily responsibility, not a side task. Scale up time significantly during deadline weeks.",
     tags: ["Academic", "Deadlines", "Required"],
@@ -494,18 +505,25 @@ const PROJECTS = [
 ];
 
 // ==================== HELPERS ====================
+
 function toMins(h, m) {
   return h * 60 + m;
 }
+
 function fmtH(h, m) {
   const ap = h >= 12 ? "PM" : "AM";
   let hh = h % 12;
   if (hh === 0) hh = 12;
   return `${hh}:${String(m).padStart(2, "0")} ${ap}`;
 }
+
 function nowMins() {
   const n = new Date();
   return n.getHours() * 60 + n.getMinutes();
+}
+
+function getTodayName() {
+  return DAY_NAMES[new Date().getDay()];
 }
 
 function getActiveBlock(blocks) {
@@ -516,11 +534,12 @@ function getActiveBlock(blocks) {
     const e = toMins(b.eh, b.em);
 
     if (b.label === "Sleep") {
-      if (m < 300) return b;
+      if (m >= 0 && m < 300) return b;
     } else if (m >= s && m < e) {
       return b;
     }
   }
+
   return null;
 }
 
@@ -529,23 +548,19 @@ function normalizeHour(h) {
 }
 
 // ==================== RENDER FUNCTIONS ====================
+
 function renderTimeline() {
-  const dayName = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ][new Date().getDay()];
-
-  const BLOCKS = buildDailyBlocks(dayName);
+  const dayName = getTodayName();
+  const blocks = buildDailyBlocks(dayName);
   const tl = document.getElementById("timeline");
-  const active = getActiveBlock(BLOCKS);
 
-  const display = BLOCKS.slice(1);
-  display.push(BLOCKS[0]);
+  if (!tl) return;
+
+  const active = getActiveBlock(blocks);
+
+  // Show 5:00 AM first, then Sleep at the bottom like your mockup.
+  const display = blocks.slice(1);
+  display.push(blocks[0]);
 
   tl.innerHTML = display
     .map((b, i) => {
@@ -553,7 +568,6 @@ function renderTimeline() {
       const isActive = active && active.label === b.label;
 
       const startLabel = b.label === "Sleep" ? "12:00 AM" : fmtH(b.sh, b.sm);
-
       const endLabel =
         b.label === "Sleep" ? "5:00 AM" : fmtH(normalizeHour(b.eh), b.em);
 
@@ -583,21 +597,14 @@ function renderTimeline() {
 }
 
 function updateNowBanner() {
-  const dayName = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ][new Date().getDay()];
-
-  const BLOCKS = buildDailyBlocks(dayName);
-  const b = getActiveBlock(BLOCKS);
+  const dayName = getTodayName();
+  const blocks = buildDailyBlocks(dayName);
+  const b = getActiveBlock(blocks);
 
   const nameEl = document.getElementById("nowName");
   const timeEl = document.getElementById("nowTime");
+
+  if (!nameEl || !timeEl) return;
 
   if (b) {
     nameEl.style.color = b.color;
@@ -619,22 +626,18 @@ function updateNowBanner() {
 }
 
 function renderWeekly() {
-  const todayName = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ][new Date().getDay()];
+  const todayName = getTodayName();
   const grid = document.getElementById("weekGrid");
+
+  if (!grid) return;
+
   grid.innerHTML = Object.keys(WEEKLY)
     .map((day) => {
       const f = WEEKLY[day];
       const isToday = day === todayName;
       const mc = PROJ_COLORS[f.mainType] || "#888";
       const sc = PROJ_COLORS[f.secType] || "#888";
+
       return `<div class="day-card${isToday ? " today" : ""}" onclick="selectDay('${day}',this)">
       <div class="day-head">
         <span class="day-name-label">${day.substring(0, 3)}</span>
@@ -653,26 +656,22 @@ function selectDay(day, el) {
   document
     .querySelectorAll(".day-card")
     .forEach((c) => c.classList.remove("selected"));
-  el.classList.add("selected");
+
+  if (el) el.classList.add("selected");
+
   renderDayDetail(day);
 }
 
 function renderDayDetail(day) {
   const detail = document.getElementById("dayDetail");
   const f = WEEKLY[day];
-  const todayName = [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-  ][new Date().getDay()];
+
+  if (!detail || !f) return;
+
+  const todayName = getTodayName();
   const isToday = day === todayName;
   const mc = PROJ_COLORS[f.mainType] || "#888";
   const sc = PROJ_COLORS[f.secType] || "#888";
-  const uc = "#7F77DD";
 
   detail.style.display = "block";
   detail.innerHTML = `
@@ -696,8 +695,12 @@ function renderDayDetail(day) {
 
 function renderProjects() {
   const container = document.getElementById("projectsList");
+
+  if (!container) return;
+
   container.innerHTML = PROJECTS.map((p) => {
     const c = p.color;
+
     return `<div class="proj-card" id="proj-${p.num}">
       <div class="proj-header" onclick="toggleProject(${p.num})">
         <div class="proj-num">#${p.num}</div>
@@ -708,11 +711,33 @@ function renderProjects() {
       </div>
       <div class="proj-details">
         <div class="proj-details-grid">
-          <div class="proj-detail-block"><div class="proj-detail-title">Engine / Platform</div><div class="proj-detail-val"><code style="color:${c}">${p.engine}</code></div></div>
-          <div class="proj-detail-block"><div class="proj-detail-title">Team</div><div class="proj-detail-val">${p.team}</div></div>
-          <div class="proj-detail-block"><div class="proj-detail-title">Recommended Schedule</div><div class="proj-detail-val">${p.sched}</div></div>
-          <div class="proj-detail-block"><div class="proj-detail-title">Tags</div><div class="proj-tags">${p.tags.map((t) => `<span class="proj-tag" style="background:${c}22;color:${c}">${t}</span>`).join("")}</div></div>
-          <div class="proj-detail-block full"><div class="proj-detail-title">Focus Note</div><div class="proj-detail-val">${p.focus}</div></div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Engine / Platform</div>
+            <div class="proj-detail-val"><code style="color:${c}">${p.engine}</code></div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Team</div>
+            <div class="proj-detail-val">${p.team}</div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Recommended Schedule</div>
+            <div class="proj-detail-val">${p.sched}</div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Tags</div>
+            <div class="proj-tags">
+              ${p.tags
+                .map(
+                  (t) =>
+                    `<span class="proj-tag" style="background:${c}22;color:${c}">${t}</span>`,
+                )
+                .join("")}
+            </div>
+          </div>
+          <div class="proj-detail-block full">
+            <div class="proj-detail-title">Focus Note</div>
+            <div class="proj-detail-val">${p.focus}</div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -720,21 +745,28 @@ function renderProjects() {
 }
 
 function toggleProject(num) {
-  document.getElementById(`proj-${num}`).classList.toggle("open");
+  const el = document.getElementById(`proj-${num}`);
+  if (!el) return;
+  el.classList.toggle("open");
 }
 
 function switchTab(name, btn) {
   document
     .querySelectorAll(".tab-panel")
     .forEach((p) => p.classList.remove("active"));
+
   document
     .querySelectorAll(".tab-btn")
     .forEach((b) => b.classList.remove("active"));
-  document.getElementById(`tab-${name}`).classList.add("active");
-  btn.classList.add("active");
+
+  const panel = document.getElementById(`tab-${name}`);
+  if (panel) panel.classList.add("active");
+
+  if (btn) btn.classList.add("active");
 }
 
 // ==================== CLOCK ====================
+
 function tick() {
   const now = new Date();
   let h = now.getHours();
@@ -746,10 +778,13 @@ function tick() {
   const m = String(now.getMinutes()).padStart(2, "0");
   const s = String(now.getSeconds()).padStart(2, "0");
 
-  document.getElementById("liveClock").textContent = `${hh}:${m}:${s} ${ap}`;
-  document.getElementById("liveDate").textContent =
-    `${["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][now.getDay()]}, ` +
-    `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][now.getMonth()]} ${now.getDate()}`;
+  const clock = document.getElementById("liveClock");
+  const date = document.getElementById("liveDate");
+
+  if (clock) clock.textContent = `${hh}:${m}:${s} ${ap}`;
+  if (date) {
+    date.textContent = `${DAY_NAMES[now.getDay()]}, ${MONTH_NAMES[now.getMonth()]} ${now.getDate()}`;
+  }
 
   updateNowBanner();
 }

@@ -63,6 +63,7 @@ window.addEventListener("load", async () => {
   await initGoogleCalendar();
   syncRecurringRoutineToGoogle();
 });
+
 async function initGoogleCalendar() {
   if (!window.gapi || !window.google) {
     console.warn("Google API scripts not loaded yet.");

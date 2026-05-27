@@ -1,4 +1,4 @@
-// ==================== GOOGLE CALENDAR RECURRING SYNC ====================
+// ==================== GOOGLE CALENDAR RECURRING SYNC FIX ====================
 
 const CLIENT_ID =
   "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
@@ -8,7 +8,7 @@ const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
-// Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
+// Set true once if you want to reset/delete old wrong calendar.
 const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
 
 let tokenClient;
@@ -32,21 +32,6 @@ const DAY_NAMES = [
   "Thursday",
   "Friday",
   "Saturday",
-];
-
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
 ];
 
 window.onload = async () => {
@@ -95,7 +80,7 @@ function initGoogleCalendar() {
             await deleteAllDevScheduleEvents();
             await createRecurringRoutineEvents();
 
-            alert("Dev Schedule recurring calendar synced.");
+            alert("Dev Schedule synced with correct Asia/Manila time.");
           } catch (err) {
             console.error("Sync error:", err);
             alert("Sync error. Check browser console.");
@@ -110,7 +95,10 @@ function initGoogleCalendar() {
 
 function syncRecurringRoutineToGoogle() {
   if (!tokenClient) return;
-  tokenClient.requestAccessToken({ prompt: "" });
+
+  tokenClient.requestAccessToken({
+    prompt: "consent",
+  });
 }
 
 async function getOrCreateDevScheduleCalendar() {
@@ -192,6 +180,10 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
+// IMPORTANT FIX:
+// No .toISOString()
+// No +08:00 suffix
+// Google Calendar will use timeZone: "Asia/Manila"
 function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   const d = new Date(baseDate);
   d.setDate(d.getDate() + addDays);
@@ -200,7 +192,7 @@ function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   const hh = String(hour).padStart(2, "0");
   const mm = String(minute).padStart(2, "0");
 
-  return `${date}T${hh}:${mm}:00+08:00`;
+  return `${date}T${hh}:${mm}:00`;
 }
 
 async function insertRecurringEvent(dayName, block) {
@@ -214,22 +206,24 @@ async function insertRecurringEvent(dayName, block) {
     endAddDays = 1;
   }
 
+  const event = {
+    summary: block.label,
+    description: block.sub || "From Dev Schedule",
+    colorId: block.googleColorId || undefined,
+    start: {
+      dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
+      timeZone: TIME_ZONE,
+    },
+    end: {
+      dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
+      timeZone: TIME_ZONE,
+    },
+    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+  };
+
   await gapi.client.calendar.events.insert({
     calendarId: devScheduleCalendarId,
-    resource: {
-      summary: block.label,
-      description: block.sub || "From Dev Schedule",
-      colorId: block.googleColorId || undefined,
-      start: {
-        dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
-        timeZone: TIME_ZONE,
-      },
-      end: {
-        dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
-        timeZone: TIME_ZONE,
-      },
-      recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
-    },
+    resource: event,
   });
 }
 

@@ -1,4 +1,4 @@
-// ==================== GOOGLE CALENDAR RECURRING SYNC FIX ====================
+// ==================== GOOGLE CALENDAR RECURRING SYNC ====================
 
 const CLIENT_ID =
   "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
@@ -8,10 +8,8 @@ const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
-// IMPORTANT:
-// true = delete calendar only, then stop
-// false = create/sync schedule
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
+// Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
 
 let tokenClient;
 let devScheduleCalendarId = null;
@@ -37,21 +35,21 @@ const DAY_NAMES = [
 ];
 
 const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
   "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
-window.addEventListener("load", async () => {
+window.onload = async () => {
   renderTimeline();
   renderWeekly();
   renderProjects();
@@ -62,14 +60,9 @@ window.addEventListener("load", async () => {
 
   await initGoogleCalendar();
   syncRecurringRoutineToGoogle();
-});
+};
 
-async function initGoogleCalendar() {
-  if (!window.gapi || !window.google) {
-    console.warn("Google API scripts not loaded yet.");
-    return;
-  }
-
+function initGoogleCalendar() {
   return new Promise((resolve) => {
     gapi.load("client", async () => {
       await gapi.client.init({
@@ -93,7 +86,7 @@ async function initGoogleCalendar() {
             if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
               await deleteDevScheduleCalendar();
               alert(
-                "Dev Schedule deleted. Now set DELETE_DEV_SCHEDULE_CALENDAR_FIRST to false.",
+                "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
               );
               return;
             }
@@ -102,7 +95,7 @@ async function initGoogleCalendar() {
             await deleteAllDevScheduleEvents();
             await createRecurringRoutineEvents();
 
-            alert("Dev Schedule synced correctly in Asia/Manila time.");
+            alert("Dev Schedule recurring calendar synced.");
           } catch (err) {
             console.error("Sync error:", err);
             alert("Sync error. Check browser console.");
@@ -116,20 +109,14 @@ async function initGoogleCalendar() {
 }
 
 function syncRecurringRoutineToGoogle() {
-  if (!tokenClient) {
-    alert("Google Calendar is not ready yet.");
-    return;
-  }
-
-  tokenClient.requestAccessToken({
-    prompt: "consent",
-  });
+  if (!tokenClient) return;
+  tokenClient.requestAccessToken({ prompt: "" });
 }
 
 async function getOrCreateDevScheduleCalendar() {
   const calendars = await gapi.client.calendar.calendarList.list();
 
-  const existing = calendars.result.items?.find(
+  const existing = calendars.result.items.find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
@@ -148,7 +135,7 @@ async function getOrCreateDevScheduleCalendar() {
 async function deleteDevScheduleCalendar() {
   const calendars = await gapi.client.calendar.calendarList.list();
 
-  const existing = calendars.result.items?.find(
+  const existing = calendars.result.items.find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
@@ -213,7 +200,7 @@ function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   const hh = String(hour).padStart(2, "0");
   const mm = String(minute).padStart(2, "0");
 
-  return `${date}T${hh}:${mm}:00`;
+  return `${date}T${hh}:${mm}:00+08:00`;
 }
 
 async function insertRecurringEvent(dayName, block) {
@@ -227,24 +214,22 @@ async function insertRecurringEvent(dayName, block) {
     endAddDays = 1;
   }
 
-  const event = {
-    summary: block.label,
-    description: block.sub || "From Dev Schedule",
-    colorId: block.googleColorId || undefined,
-    start: {
-      dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
-      timeZone: TIME_ZONE,
-    },
-    end: {
-      dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
-      timeZone: TIME_ZONE,
-    },
-    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
-  };
-
   await gapi.client.calendar.events.insert({
     calendarId: devScheduleCalendarId,
-    resource: event,
+    resource: {
+      summary: block.label,
+      description: block.sub || "From Dev Schedule",
+      colorId: block.googleColorId || undefined,
+      start: {
+        dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
+        timeZone: TIME_ZONE,
+      },
+      end: {
+        dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
+        timeZone: TIME_ZONE,
+      },
+      recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+    },
   });
 }
 
@@ -261,136 +246,19 @@ async function createRecurringRoutineEvents() {
 // ==================== DATA ====================
 
 const GOOGLE_COLOR_IDS = {
-  sleep: "8",
-  routine: "8",
-  health: "10",
-  school: "9",
-  gap: "8",
-  learning: "3",
-  work: "2",
-  university: "3",
-  ashes: "6",
-  kitchen: "9",
-  horror: "11",
-  rest: "8",
+  sleep: "8", // gray
+  routine: "8", // gray
+  health: "10", // green
+  school: "9", // blue
+  gap: "8", // gray
+  learning: "3", // purple
+  work: "2", // green
+  university: "3", // purple
+  ashes: "6", // orange
+  kitchen: "9", // blue
+  horror: "11", // red
+  rest: "8", // gray
 };
-
-const WEEKLY = {
-  Monday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Paragon University",
-    secType: "university",
-  },
-  Tuesday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Ashes",
-    secType: "ashes",
-  },
-  Wednesday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Paragon University",
-    secType: "university",
-  },
-  Thursday: {
-    main: "Ashes",
-    mainType: "ashes",
-    sec: "PHKitchenDuo",
-    secType: "kitchen",
-  },
-  Friday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Personal Horror Game",
-    secType: "horror",
-  },
-  Saturday: {
-    main: "Personal Horror Game",
-    mainType: "horror",
-    sec: "Ashes",
-    secType: "ashes",
-  },
-  Sunday: {
-    main: "Rest / Planning",
-    mainType: "rest",
-    sec: "Small Tasks",
-    secType: "rest",
-  },
-};
-
-const PROJ_COLORS = {
-  work: "#1D9E75",
-  university: "#7F77DD",
-  ashes: "#EF9F27",
-  kitchen: "#378ADD",
-  horror: "#D85A30",
-  rest: "#888780",
-};
-
-const PROJECTS = [
-  {
-    num: 1,
-    name: "Second Chance",
-    priority: "Highest Priority",
-    type: "work",
-    color: "#1D9E75",
-    engine: "Unreal Engine 5.7",
-    team: "Solo developer",
-    sched: "4–5 days/week",
-    focus: "Coding, assets, and design. This deserves the most focused time.",
-    tags: ["Coding-heavy", "Resources available", "Solo dev"],
-  },
-  {
-    num: 2,
-    name: "Paragon University Project",
-    priority: "High Priority",
-    type: "university",
-    color: "#7F77DD",
-    engine: "School / University",
-    team: "Academic project",
-    sched: "2–3 days/week",
-    focus: "Treat this as a required daily responsibility.",
-    tags: ["Academic", "Deadlines", "Required"],
-  },
-  {
-    num: 3,
-    name: "Ashes",
-    priority: "Medium Priority",
-    type: "ashes",
-    color: "#EF9F27",
-    engine: "Unreal Engine 5.3",
-    team: "2 developers",
-    sched: "2–3 days/week",
-    focus: "Coordinate with your co-dev to avoid bottlenecks.",
-    tags: ["Shared workload", "Client resources", "2 devs"],
-  },
-  {
-    num: 4,
-    name: "PHKitchenDuo",
-    priority: "Low Priority",
-    type: "kitchen",
-    color: "#378ADD",
-    engine: "Unity 2022.3",
-    team: "Team project",
-    sched: "1–2 sessions per week",
-    focus: "Stay focused on your one deliverable.",
-    tags: ["One feature", "Team project", "Limited scope"],
-  },
-  {
-    num: 5,
-    name: "Personal Horror Game",
-    priority: "Long-Term",
-    type: "horror",
-    color: "#D85A30",
-    engine: "Unreal Engine 5",
-    team: "Solo developer",
-    sched: "Fri night + Sat + Sun",
-    focus: "Passion project and portfolio piece.",
-    tags: ["Passion project", "Portfolio", "Solo dev"],
-  },
-];
 
 function buildDailyBlocks(dayName) {
   const f = WEEKLY[dayName];
@@ -492,8 +360,8 @@ function buildDailyBlocks(dayName) {
       label: f.main,
       sub: "Highest-priority project — full focus block",
       type: f.mainType,
-      color: PROJ_COLORS[f.mainType],
-      googleColorId: GOOGLE_COLOR_IDS[f.mainType],
+      color: PROJ_COLORS[f.mainType] || "#1D9E75",
+      googleColorId: GOOGLE_COLOR_IDS[f.mainType] || GOOGLE_COLOR_IDS.work,
     },
     {
       sh: 23,
@@ -503,11 +371,138 @@ function buildDailyBlocks(dayName) {
       label: f.sec,
       sub: "Secondary project / planning",
       type: f.secType,
-      color: PROJ_COLORS[f.secType],
-      googleColorId: GOOGLE_COLOR_IDS[f.secType],
+      color: PROJ_COLORS[f.secType] || "#EF9F27",
+      googleColorId: GOOGLE_COLOR_IDS[f.secType] || GOOGLE_COLOR_IDS.rest,
     },
   ];
 }
+
+const WEEKLY = {
+  Monday: {
+    main: "Second Chance",
+    mainType: "work",
+    sec: "Paragon University",
+    secType: "university",
+  },
+  Tuesday: {
+    main: "Second Chance",
+    mainType: "work",
+    sec: "Ashes",
+    secType: "ashes",
+  },
+  Wednesday: {
+    main: "Second Chance",
+    mainType: "work",
+    sec: "Paragon University",
+    secType: "university",
+  },
+  Thursday: {
+    main: "Ashes",
+    mainType: "ashes",
+    sec: "PHKitchenDuo",
+    secType: "kitchen",
+  },
+  Friday: {
+    main: "Second Chance",
+    mainType: "work",
+    sec: "Personal Horror Game",
+    secType: "horror",
+  },
+  Saturday: {
+    main: "Personal Horror Game",
+    mainType: "horror",
+    sec: "Ashes",
+    secType: "ashes",
+  },
+  Sunday: {
+    main: "Rest / Planning",
+    mainType: "rest",
+    sec: "Small Tasks",
+    secType: "rest",
+  },
+};
+
+const PROJ_COLORS = {
+  work: "#1D9E75",
+  university: "#7F77DD",
+  ashes: "#EF9F27",
+  kitchen: "#378ADD",
+  horror: "#D85A30",
+  rest: "#888780",
+};
+
+const PROJECTS = [
+  {
+    num: 1,
+    name: "Second Chance",
+    priority: "Highest Priority",
+    type: "work",
+    color: "#1D9E75",
+    engine: "Unreal Engine 5.7",
+    team: "Solo developer",
+    client: "Self-funded",
+    sched: "4–5 days/week",
+    focus:
+      "You are handling everything alone — coding, assets, design. This deserves the most focused time and energy in your schedule.",
+    tags: ["Coding-heavy", "Resources available", "Solo dev"],
+  },
+  {
+    num: 2,
+    name: "Paragon University Project",
+    priority: "High Priority",
+    type: "university",
+    color: "#7F77DD",
+    engine: "School / University",
+    team: "Academic project",
+    client: "University deadline",
+    sched: "2–3 days/week",
+    focus:
+      "Treat this as a required daily responsibility, not a side task. Scale up time significantly during deadline weeks.",
+    tags: ["Academic", "Deadlines", "Required"],
+  },
+  {
+    num: 3,
+    name: "Ashes",
+    priority: "Medium Priority",
+    type: "ashes",
+    color: "#EF9F27",
+    engine: "Unreal Engine 5.3",
+    team: "2 developers",
+    client: "Client-provided resources",
+    sched: "2–3 days/week · Secondary work block when needed",
+    focus:
+      "Medium priority because the workload is shared. Coordinate with your co-dev to avoid bottlenecks.",
+    tags: ["Shared workload", "Client resources", "2 devs"],
+  },
+  {
+    num: 4,
+    name: "PHKitchenDuo",
+    priority: "Low Priority",
+    type: "kitchen",
+    color: "#378ADD",
+    engine: "Unity 2022.3",
+    team: "Team project",
+    client: "Team-owned",
+    sched: "1–2 sessions per week only",
+    focus:
+      "Your responsibility is scoped to a single feature or task. Don't over-invest — stay focused on your one deliverable.",
+    tags: ["One feature", "Team project", "Limited scope"],
+  },
+  {
+    num: 5,
+    name: "Personal Horror Game",
+    priority: "Long-Term",
+    type: "horror",
+    color: "#D85A30",
+    engine: "Unreal Engine 5",
+    team: "Solo developer",
+    client: "Self-funded",
+    sched: "Fri night + Sat + Sun · Max 6–8 hours/week",
+    focus:
+      "This is your passion project and portfolio piece. Work on it when inspired — don't force daily sessions. Quality over grind.",
+    tags: ["Passion project", "Portfolio", "Solo dev"],
+  },
+];
 
 // ==================== HELPERS ====================
 
@@ -552,16 +547,18 @@ function normalizeHour(h) {
   return h === 24 ? 0 : h;
 }
 
-// ==================== RENDER ====================
+// ==================== RENDER FUNCTIONS ====================
 
 function renderTimeline() {
-  const tl = document.getElementById("timeline");
-  if (!tl) return;
-
   const dayName = getTodayName();
   const blocks = buildDailyBlocks(dayName);
+  const tl = document.getElementById("timeline");
+
+  if (!tl) return;
+
   const active = getActiveBlock(blocks);
 
+  // Show 5:00 AM first, then Sleep at the bottom like your mockup.
   const display = blocks.slice(1);
   display.push(blocks[0]);
 
@@ -569,87 +566,88 @@ function renderTimeline() {
     .map((b, i) => {
       const isLast = i === display.length - 1;
       const isActive = active && active.label === b.label;
+
       const startLabel = b.label === "Sleep" ? "12:00 AM" : fmtH(b.sh, b.sm);
       const endLabel =
         b.label === "Sleep" ? "5:00 AM" : fmtH(normalizeHour(b.eh), b.em);
 
       return `
-        <div class="tl-item${isActive ? " active-block" : ""}">
-          <div class="tl-time">
-            ${startLabel}<br>
-            <span style="color:var(--bg4)">─</span><br>
-            ${endLabel}
-          </div>
-
-          <div class="tl-track">
-            <div class="tl-dot" style="background:${b.color}"></div>
-            ${!isLast ? '<div class="tl-line"></div>' : ""}
-          </div>
-
-          <div class="tl-body">
-            <div class="tl-name" style="color:${isActive ? b.color : "var(--text)"}">
-              ${b.label}
-            </div>
-            <div class="tl-sub">${b.sub}</div>
-          </div>
+      <div class="tl-item${isActive ? " active-block" : ""}">
+        <div class="tl-time">
+          ${startLabel}<br>
+          <span style="color:var(--bg4)">─</span><br>
+          ${endLabel}
         </div>
-      `;
+
+        <div class="tl-track">
+          <div class="tl-dot" style="background:${b.color}"></div>
+          ${!isLast ? '<div class="tl-line"></div>' : ""}
+        </div>
+
+        <div class="tl-body">
+          <div class="tl-name" style="color:${isActive ? b.color : "var(--text)"}">
+            ${b.label}
+          </div>
+          <div class="tl-sub">${b.sub}</div>
+        </div>
+      </div>
+    `;
     })
     .join("");
 }
 
 function updateNowBanner() {
-  const nameEl = document.getElementById("nowName");
-  const timeEl = document.getElementById("nowTime");
-  if (!nameEl || !timeEl) return;
-
-  const blocks = buildDailyBlocks(getTodayName());
+  const dayName = getTodayName();
+  const blocks = buildDailyBlocks(dayName);
   const b = getActiveBlock(blocks);
 
-  if (!b) {
+  const nameEl = document.getElementById("nowName");
+  const timeEl = document.getElementById("nowTime");
+
+  if (!nameEl || !timeEl) return;
+
+  if (b) {
+    nameEl.style.color = b.color;
+    nameEl.textContent = b.label;
+
+    const end =
+      b.label === "Sleep"
+        ? "5:00 AM"
+        : b.eh === 24
+          ? "12:00 AM"
+          : fmtH(b.eh, b.em);
+
+    timeEl.textContent = `Until ${end}`;
+  } else {
     nameEl.style.color = "var(--text2)";
     nameEl.textContent = "Free Time";
     timeEl.textContent = "—";
-    return;
   }
-
-  nameEl.style.color = b.color;
-  nameEl.textContent = b.label;
-
-  const end =
-    b.label === "Sleep"
-      ? "5:00 AM"
-      : b.eh === 24
-        ? "12:00 AM"
-        : fmtH(b.eh, b.em);
-  timeEl.textContent = `Until ${end}`;
 }
 
 function renderWeekly() {
-  const grid = document.getElementById("weekGrid");
-  if (!grid) return;
-
   const todayName = getTodayName();
+  const grid = document.getElementById("weekGrid");
+
+  if (!grid) return;
 
   grid.innerHTML = Object.keys(WEEKLY)
     .map((day) => {
       const f = WEEKLY[day];
       const isToday = day === todayName;
-      const mc = PROJ_COLORS[f.mainType];
-      const sc = PROJ_COLORS[f.secType];
+      const mc = PROJ_COLORS[f.mainType] || "#888";
+      const sc = PROJ_COLORS[f.secType] || "#888";
 
-      return `
-        <div class="day-card${isToday ? " today" : ""}" onclick="selectDay('${day}', this)">
-          <div class="day-head">
-            <span class="day-name-label">${day.substring(0, 3)}</span>
-            ${isToday ? '<span class="today-tag">Today</span>' : ""}
-          </div>
-          <div class="focus-label">Main Focus</div>
-          <div class="focus-badge" style="background:${mc}22;color:${mc};border-color:${mc}44">${f.main}</div>
-          <div class="focus-label">Secondary</div>
-          <div class="focus-badge" style="background:${sc}22;color:${sc};border-color:${sc}44">${f.sec}</div>
-        </div>
-      `;
+      return `<div class="day-card${isToday ? " today" : ""}" onclick="selectDay('${day}',this)">
+      <div class="day-head">
+        <span class="day-name-label">${day.substring(0, 3)}</span>
+        ${isToday ? '<span class="today-tag">Today</span>' : ""}
+      </div>
+      <div class="focus-label">Main Focus</div>
+      <div class="focus-badge" style="background:${mc}22;color:${mc};border-color:${mc}44">${f.main}</div>
+      <div class="focus-label">Secondary</div>
+      <div class="focus-badge" style="background:${sc}22;color:${sc};border-color:${sc}44">${f.sec}</div>
+    </div>`;
     })
     .join("");
 }
@@ -658,22 +656,27 @@ function selectDay(day, el) {
   document
     .querySelectorAll(".day-card")
     .forEach((c) => c.classList.remove("selected"));
+
   if (el) el.classList.add("selected");
+
   renderDayDetail(day);
 }
 
 function renderDayDetail(day) {
   const detail = document.getElementById("dayDetail");
   const f = WEEKLY[day];
+
   if (!detail || !f) return;
 
-  const mc = PROJ_COLORS[f.mainType];
-  const sc = PROJ_COLORS[f.secType];
+  const todayName = getTodayName();
+  const isToday = day === todayName;
+  const mc = PROJ_COLORS[f.mainType] || "#888";
+  const sc = PROJ_COLORS[f.secType] || "#888";
 
   detail.style.display = "block";
   detail.innerHTML = `
     <div class="detail-day-header">
-      <div class="detail-day-name">${day}</div>
+      <div class="detail-day-name">${day}${isToday ? ' <span style="font-size:11px;color:var(--teal);font-family:var(--mono)">[today]</span>' : ""}</div>
       <div class="detail-day-sub">Evening work session breakdown</div>
     </div>
     <div class="detail-rows">
@@ -687,54 +690,57 @@ function renderDayDetail(day) {
         <div class="detail-row-name" style="color:${sc}">${f.sec}</div>
         <div class="detail-row-badge" style="color:${sc};background:${sc}22;border-color:${sc}44">Secondary</div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 function renderProjects() {
   const container = document.getElementById("projectsList");
+
   if (!container) return;
 
   container.innerHTML = PROJECTS.map((p) => {
     const c = p.color;
 
-    return `
-      <div class="proj-card" id="proj-${p.num}">
-        <div class="proj-header" onclick="toggleProject(${p.num})">
-          <div class="proj-num">#${p.num}</div>
-          <div class="proj-dot" style="background:${c}"></div>
-          <div class="proj-name" style="color:${c}">${p.name}</div>
-          <div class="proj-badge" style="color:${c};background:${c}22;border-color:${c}44">${p.priority}</div>
-          <div class="proj-chevron">▾</div>
-        </div>
-        <div class="proj-details">
-          <div class="proj-details-grid">
-            <div class="proj-detail-block">
-              <div class="proj-detail-title">Engine / Platform</div>
-              <div class="proj-detail-val"><code style="color:${c}">${p.engine}</code></div>
+    return `<div class="proj-card" id="proj-${p.num}">
+      <div class="proj-header" onclick="toggleProject(${p.num})">
+        <div class="proj-num">#${p.num}</div>
+        <div class="proj-dot" style="background:${c}"></div>
+        <div class="proj-name" style="color:${c}">${p.name}</div>
+        <div class="proj-badge" style="color:${c};background:${c}22;border-color:${c}44">${p.priority}</div>
+        <div class="proj-chevron">▾</div>
+      </div>
+      <div class="proj-details">
+        <div class="proj-details-grid">
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Engine / Platform</div>
+            <div class="proj-detail-val"><code style="color:${c}">${p.engine}</code></div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Team</div>
+            <div class="proj-detail-val">${p.team}</div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Recommended Schedule</div>
+            <div class="proj-detail-val">${p.sched}</div>
+          </div>
+          <div class="proj-detail-block">
+            <div class="proj-detail-title">Tags</div>
+            <div class="proj-tags">
+              ${p.tags
+                .map(
+                  (t) =>
+                    `<span class="proj-tag" style="background:${c}22;color:${c}">${t}</span>`,
+                )
+                .join("")}
             </div>
-            <div class="proj-detail-block">
-              <div class="proj-detail-title">Team</div>
-              <div class="proj-detail-val">${p.team}</div>
-            </div>
-            <div class="proj-detail-block">
-              <div class="proj-detail-title">Recommended Schedule</div>
-              <div class="proj-detail-val">${p.sched}</div>
-            </div>
-            <div class="proj-detail-block">
-              <div class="proj-detail-title">Tags</div>
-              <div class="proj-tags">
-                ${p.tags.map((t) => `<span class="proj-tag" style="background:${c}22;color:${c}">${t}</span>`).join("")}
-              </div>
-            </div>
-            <div class="proj-detail-block full">
-              <div class="proj-detail-title">Focus Note</div>
-              <div class="proj-detail-val">${p.focus}</div>
-            </div>
+          </div>
+          <div class="proj-detail-block full">
+            <div class="proj-detail-title">Focus Note</div>
+            <div class="proj-detail-val">${p.focus}</div>
           </div>
         </div>
       </div>
-    `;
+    </div>`;
   }).join("");
 }
 
@@ -748,12 +754,14 @@ function switchTab(name, btn) {
   document
     .querySelectorAll(".tab-panel")
     .forEach((p) => p.classList.remove("active"));
+
   document
     .querySelectorAll(".tab-btn")
     .forEach((b) => b.classList.remove("active"));
 
   const panel = document.getElementById(`tab-${name}`);
   if (panel) panel.classList.add("active");
+
   if (btn) btn.classList.add("active");
 }
 
@@ -761,7 +769,6 @@ function switchTab(name, btn) {
 
 function tick() {
   const now = new Date();
-
   let h = now.getHours();
   const ap = h >= 12 ? "PM" : "AM";
   h = h % 12;

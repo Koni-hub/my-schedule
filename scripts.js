@@ -1,8 +1,7 @@
-// ==================== GOOGLE CALENDAR SYNC ====================
+// ==================== GOOGLE CALENDAR RECURRING SYNC ====================
 
 const CLIENT_ID =
   "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
-
 const API_KEY = "AIzaSyD__3OJHOVkVvvDGiUjqg__zqcCH9pYAU0";
 
 const SCOPES = "https://www.googleapis.com/auth/calendar";
@@ -11,6 +10,16 @@ const CALENDAR_NAME = "Dev Schedule";
 
 let tokenClient;
 let devScheduleCalendarId = null;
+
+const DAY_CODES = {
+  Monday: "MO",
+  Tuesday: "TU",
+  Wednesday: "WE",
+  Thursday: "TH",
+  Friday: "FR",
+  Saturday: "SA",
+  Sunday: "SU",
+};
 
 window.onload = async () => {
   renderTimeline();
@@ -22,7 +31,7 @@ window.onload = async () => {
   setInterval(renderTimeline, 60000);
 
   await initGoogleCalendar();
-  syncRoutineToGoogle();
+  syncRecurringRoutineToGoogle();
 };
 
 function initGoogleCalendar() {
@@ -45,8 +54,17 @@ function initGoogleCalendar() {
             return;
           }
 
-          devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
-          await createTodayRoutineEvents();
+          try {
+            devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
+
+            await deleteAllDevScheduleEvents();
+            await createRecurringRoutineEvents();
+
+            alert("Dev Schedule recurring calendar synced.");
+          } catch (err) {
+            console.error("Sync error:", err);
+            alert("Sync error. Check browser console.");
+          }
         },
       });
 
@@ -55,12 +73,8 @@ function initGoogleCalendar() {
   });
 }
 
-function syncRoutineToGoogle() {
-  if (!tokenClient) {
-    console.error("Google Calendar is not ready yet.");
-    return;
-  }
-
+function syncRecurringRoutineToGoogle() {
+  if (!tokenClient) return;
   tokenClient.requestAccessToken({ prompt: "" });
 }
 
@@ -83,8 +97,32 @@ async function getOrCreateDevScheduleCalendar() {
   return created.result.id;
 }
 
-function getTodayName() {
-  return [
+async function deleteAllDevScheduleEvents() {
+  let pageToken = null;
+
+  do {
+    const result = await gapi.client.calendar.events.list({
+      calendarId: devScheduleCalendarId,
+      maxResults: 2500,
+      singleEvents: false,
+      pageToken,
+    });
+
+    const events = result.result.items || [];
+
+    for (const event of events) {
+      await gapi.client.calendar.events.delete({
+        calendarId: devScheduleCalendarId,
+        eventId: event.id,
+      });
+    }
+
+    pageToken = result.result.nextPageToken;
+  } while (pageToken);
+}
+
+function getNextDateForDay(dayName) {
+  const days = [
     "Sunday",
     "Monday",
     "Tuesday",
@@ -92,102 +130,83 @@ function getTodayName() {
     "Thursday",
     "Friday",
     "Saturday",
-  ][new Date().getDay()];
-}
+  ];
 
-function getTodayDate() {
-  const d = new Date();
+  const today = new Date();
+  const target = days.indexOf(dayName);
+  const diff = (target - today.getDay() + 7) % 7;
+
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
   d.setHours(0, 0, 0, 0);
+
   return d;
 }
 
-function makeDateTime(baseDate, hour, minute, addDays = 0) {
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   const d = new Date(baseDate);
   d.setDate(d.getDate() + addDays);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
+
+  const date = formatDate(d);
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+
+  return `${date}T${hh}:${mm}:00+08:00`;
 }
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replaceAll("/", "")
-    .replaceAll("–", "-")
-    .replaceAll("—", "-")
-    .replaceAll("+", "plus")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+async function insertRecurringEvent({ dayName, block }) {
+  const baseDate = getNextDateForDay(dayName);
 
-function makeScheduleEventId(date, block) {
-  const dateKey = date.toISOString().slice(0, 10);
-  return `dev-schedule-${dateKey}-${slugify(block.label)}`;
-}
+  let endHour = block.eh;
+  let endAddDays = 0;
 
-async function eventAlreadyExists(privateId) {
-  const result = await gapi.client.calendar.events.list({
-    calendarId: devScheduleCalendarId,
-    privateExtendedProperty: `devScheduleId=${privateId}`,
-    maxResults: 1,
-  });
-
-  return result.result.items && result.result.items.length > 0;
-}
-
-async function createTodayRoutineEvents() {
-  let created = 0;
-  let skipped = 0;
-
-  const todayName = getTodayName();
-  const todayDate = getTodayDate();
-  const blocks = buildDailyBlocks(todayName);
-
-  for (const block of blocks) {
-    const privateId = makeScheduleEventId(todayDate, block);
-    const exists = await eventAlreadyExists(privateId);
-
-    if (exists) {
-      skipped++;
-      continue;
-    }
-
-    let endAddDays = 0;
-    let endHour = block.eh;
-
-    // Fix 11:30 PM – 12:00 AM
-    if (block.eh === 24) {
-      endHour = 0;
-      endAddDays = 1;
-    }
-
-    const start = makeDateTime(todayDate, block.sh, block.sm);
-    const end = makeDateTime(todayDate, endHour, block.em, endAddDays);
-
-    await gapi.client.calendar.events.insert({
-      calendarId: devScheduleCalendarId,
-      resource: {
-        summary: block.label,
-        description: block.sub || "From Dev Schedule",
-        start: {
-          dateTime: start,
-          timeZone: TIME_ZONE,
-        },
-        end: {
-          dateTime: end,
-          timeZone: TIME_ZONE,
-        },
-        extendedProperties: {
-          private: {
-            devScheduleId: privateId,
-          },
-        },
-      },
-    });
-
-    created++;
+  if (block.eh === 24) {
+    endHour = 0;
+    endAddDays = 1;
   }
 
-  alert(`Today synced. Created: ${created}, Skipped: ${skipped}`);
+  await gapi.client.calendar.events.insert({
+    calendarId: devScheduleCalendarId,
+    resource: {
+      summary: block.label,
+      description: block.sub || "From Dev Schedule",
+      start: {
+        dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
+        timeZone: TIME_ZONE,
+      },
+      end: {
+        dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
+        timeZone: TIME_ZONE,
+      },
+      recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+    },
+  });
+}
+
+async function createRecurringRoutineEvents() {
+  let created = 0;
+
+  for (const dayName of Object.keys(WEEKLY)) {
+    const blocks = buildDailyBlocks(dayName);
+
+    for (const block of blocks) {
+      await insertRecurringEvent({
+        dayName,
+        block,
+      });
+
+      created++;
+    }
+  }
+
+  console.log(`Created ${created} recurring events.`);
 }
 
 // ==================== DATA ====================

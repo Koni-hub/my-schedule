@@ -8,6 +8,9 @@ const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
+// Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
+
 let tokenClient;
 let devScheduleCalendarId = null;
 
@@ -55,8 +58,15 @@ function initGoogleCalendar() {
           }
 
           try {
-            devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
+            if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
+              await deleteDevScheduleCalendar();
+              alert(
+                "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
+              );
+              return;
+            }
 
+            devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
             await deleteAllDevScheduleEvents();
             await createRecurringRoutineEvents();
 
@@ -95,6 +105,23 @@ async function getOrCreateDevScheduleCalendar() {
   });
 
   return created.result.id;
+}
+
+async function deleteDevScheduleCalendar() {
+  const calendars = await gapi.client.calendar.calendarList.list();
+
+  const existing = calendars.result.items.find(
+    (calendar) => calendar.summary === CALENDAR_NAME,
+  );
+
+  if (!existing) {
+    alert("No Dev Schedule calendar found.");
+    return;
+  }
+
+  await gapi.client.calendar.calendars.delete({
+    calendarId: existing.id,
+  });
 }
 
 async function deleteAllDevScheduleEvents() {
@@ -161,7 +188,7 @@ function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   return `${date}T${hh}:${mm}:00+08:00`;
 }
 
-async function insertRecurringEvent({ dayName, block }) {
+async function insertRecurringEvent(dayName, block) {
   const baseDate = getNextDateForDay(dayName);
 
   let endHour = block.eh;
@@ -191,24 +218,14 @@ async function insertRecurringEvent({ dayName, block }) {
 }
 
 async function createRecurringRoutineEvents() {
-  let created = 0;
-
   for (const dayName of Object.keys(WEEKLY)) {
     const blocks = buildDailyBlocks(dayName);
 
     for (const block of blocks) {
-      await insertRecurringEvent({
-        dayName,
-        block,
-      });
-
-      created++;
+      await insertRecurringEvent(dayName, block);
     }
   }
-
-  console.log(`Created ${created} recurring events.`);
 }
-
 // ==================== DATA ====================
 
 const EVENING_TEMPLATE = [

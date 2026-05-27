@@ -9,7 +9,7 @@ const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
 // Set true once if you want to reset/delete old wrong calendar.
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
 
 let tokenClient;
 let devScheduleCalendarId = null;

@@ -97,8 +97,8 @@ function initGoogleCalendar() {
 
             alert("Dev Schedule recurring calendar synced.");
           } catch (err) {
-            console.error("Sync error:", err);
-            alert("Sync error. Check browser console.");
+            console.error("FULL ERROR:", JSON.stringify(err, null, 2));
+            alert(err?.result?.error?.message || "Sync error");
           }
         },
       });

@@ -231,7 +231,12 @@ async function insertRecurringEvent(dayName, block) {
       recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
       reminders: {
         useDefault: false,
-        overrides: [{ method: "popup", minutes: 5 }],
+        overrides: [
+          {
+            method: "popup",
+            minutes: 5,
+          },
+        ],
       },
     },
   });

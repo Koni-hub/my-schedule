@@ -97,8 +97,14 @@ function initGoogleCalendar() {
 
             alert("Dev Schedule recurring calendar synced.");
           } catch (err) {
-            console.error("FULL ERROR:", JSON.stringify(err, null, 2));
-            alert(err?.result?.error?.message || "Sync error");
+            console.error("SYNC ERROR:", err);
+            console.error("BODY:", err?.body);
+
+            alert(
+              err?.result?.error?.message ||
+                err?.body ||
+                "Sync error. Check console.",
+            );
           }
         },
       });
@@ -203,7 +209,13 @@ function makeManilaDateTime(baseDate, hour, minute, addDays = 0) {
   return `${date}T${hh}:${mm}:00+08:00`;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function insertRecurringEvent(dayName, block) {
+  console.log("Creating event:", dayName, block.label);
+
   const baseDate = getNextDateForDay(dayName);
 
   let endHour = block.eh;
@@ -214,32 +226,47 @@ async function insertRecurringEvent(dayName, block) {
     endAddDays = 1;
   }
 
-  await gapi.client.calendar.events.insert({
-    calendarId: devScheduleCalendarId,
-    resource: {
-      summary: block.label,
-      description: block.sub || "From Dev Schedule",
-      colorId: block.googleColorId || undefined,
-      start: {
-        dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
-        timeZone: TIME_ZONE,
+  try {
+    await gapi.client.calendar.events.insert({
+      calendarId: devScheduleCalendarId,
+
+      resource: {
+        summary: block.label,
+        description: block.sub || "From Dev Schedule",
+        colorId: block.googleColorId || undefined,
+
+        start: {
+          dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
+          timeZone: TIME_ZONE,
+        },
+
+        end: {
+          dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
+          timeZone: TIME_ZONE,
+        },
+
+        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+
+        reminders: {
+          useDefault: false,
+          overrides: [
+            {
+              method: "popup",
+              minutes: 5,
+            },
+          ],
+        },
       },
-      end: {
-        dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
-        timeZone: TIME_ZONE,
-      },
-      recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
-      reminders: {
-        useDefault: false,
-        overrides: [
-          {
-            method: "popup",
-            minutes: 5,
-          },
-        ],
-      },
-    },
-  });
+    });
+
+    console.log("Created:", block.label);
+  } catch (err) {
+    console.error("FAILED EVENT:", block.label);
+    console.error("FULL ERROR:", err);
+    console.error("ERROR BODY:", err?.body);
+
+    throw err;
+  }
 }
 
 async function createRecurringRoutineEvents() {
@@ -248,6 +275,9 @@ async function createRecurringRoutineEvents() {
 
     for (const block of blocks) {
       await insertRecurringEvent(dayName, block);
+
+      // prevent Google API spam / 500 errors
+      await sleep(300);
     }
   }
 }

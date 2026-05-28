@@ -9,7 +9,7 @@ const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
 // Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
 
 let tokenClient;
 let devScheduleCalendarId = null;
@@ -229,6 +229,10 @@ async function insertRecurringEvent(dayName, block) {
         timeZone: TIME_ZONE,
       },
       recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+      reminders: {
+        useDefault: false,
+        overrides: [{ method: "popup", minutes: 5 }],
+      },
     },
   });
 }

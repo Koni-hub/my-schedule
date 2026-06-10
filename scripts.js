@@ -397,7 +397,7 @@ function buildDailyBlocks(dayName) {
       eh: 23,
       em: 30,
       label: f.main,
-      sub: "Highest-priority project — full focus block",
+      sub: "Highest-priority project focus",
       type: f.mainType,
       color: PROJ_COLORS[f.mainType] || "#1D9E75",
       googleColorId: GOOGLE_COLOR_IDS[f.mainType] || GOOGLE_COLOR_IDS.work,
@@ -408,7 +408,7 @@ function buildDailyBlocks(dayName) {
       eh: 24,
       em: 0,
       label: f.sec,
-      sub: "Secondary project / planning",
+      sub: "Secondary project focus",
       type: f.secType,
       color: PROJ_COLORS[f.secType] || "#EF9F27",
       googleColorId: GOOGLE_COLOR_IDS[f.secType] || GOOGLE_COLOR_IDS.rest,
@@ -418,45 +418,51 @@ function buildDailyBlocks(dayName) {
 
 const WEEKLY = {
   Monday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Paragon University",
-    secType: "university",
+    main: "Paragon University",
+    mainType: "university",
+    sec: "Second Chance",
+    secType: "work",
   },
+
   Tuesday: {
-    main: "Second Chance",
-    mainType: "work",
+    main: "Paragon University",
+    mainType: "university",
     sec: "Ashes",
     secType: "ashes",
   },
+
   Wednesday: {
-    main: "Second Chance",
-    mainType: "work",
-    sec: "Paragon University",
-    secType: "university",
+    main: "Paragon University",
+    mainType: "university",
+    sec: "Second Chance",
+    secType: "work",
   },
+
   Thursday: {
-    main: "Ashes",
-    mainType: "ashes",
-    sec: "PHKitchenDuo",
-    secType: "kitchen",
+    main: "Paragon University",
+    mainType: "university",
+    sec: "Ashes",
+    secType: "ashes",
   },
+
   Friday: {
-    main: "Second Chance",
-    mainType: "work",
+    main: "Paragon University",
+    mainType: "university",
+    sec: "Second Chance",
+    secType: "work",
+  },
+
+  Saturday: {
+    main: "PHKitchenDuo",
+    mainType: "kitchen",
     sec: "Personal Horror Game",
     secType: "horror",
   },
-  Saturday: {
-    main: "Personal Horror Game",
-    mainType: "horror",
-    sec: "Ashes",
-    secType: "ashes",
-  },
+
   Sunday: {
-    main: "Rest / Planning",
+    main: "Small Task",
     mainType: "rest",
-    sec: "Small Tasks",
+    sec: "Rest / Planning",
     secType: "rest",
   },
 };
@@ -473,46 +479,49 @@ const PROJ_COLORS = {
 const PROJECTS = [
   {
     num: 1,
-    name: "Second Chance",
-    priority: "Highest Priority",
-    type: "work",
-    color: "#1D9E75",
-    engine: "Unreal Engine 5.7",
-    team: "Team of 4 developers",
-    client: "Self-funded",
-    sched: "4–5 days/week",
-    focus:
-      "Oversee the core game play and major systems. As the lead dev, your work impacts the whole team — prioritize this above all else.",
-    tags: ["Oversee", "Resources available", "4 dev"],
-  },
-  {
-    num: 2,
     name: "Paragon University Project",
-    priority: "High Priority",
+    priority: "Highest Priority",
     type: "university",
     color: "#7F77DD",
     engine: "School / University",
     team: "Academic project",
     client: "University deadline",
-    sched: "2–3 days/week",
+    sched: "5 days/week",
     focus:
-      "Treat this as a required daily responsibility, not a side task. Scale up time significantly during deadline weeks.",
+      "Primary responsibility. Maintain steady progress throughout the week and increase effort significantly during submission periods. Academic deadlines take precedence over all side projects.",
     tags: ["Academic", "Deadlines", "Required"],
   },
+
+  {
+    num: 2,
+    name: "Second Chance",
+    priority: "High Priority",
+    type: "work",
+    color: "#1D9E75",
+    engine: "Unreal Engine 5.7",
+    team: "Team of 4 developers",
+    client: "Self-funded",
+    sched: "3–4 days/week",
+    focus:
+      "Lead development of core gameplay and systems while balancing university obligations. Focus on removing blockers and coordinating the team rather than trying to do everything yourself.",
+    tags: ["Lead Dev", "Team Coordination", "4 dev"],
+  },
+
   {
     num: 3,
     name: "Ashes",
     priority: "Medium Priority",
     type: "ashes",
     color: "#EF9F27",
-    engine: "Unreal Engine 5.3",
-    team: "2 developers",
+    engine: "Unreal Engine 5.7",
+    team: "3 developers",
     client: "Client-provided resources",
-    sched: "2–3 days/week · Secondary work block when needed",
+    sched: "2 days/week",
     focus:
-      "Medium priority because the workload is shared. Coordinate with your co-dev to avoid bottlenecks.",
-    tags: ["Shared workload", "Client resources", "2 devs"],
+      "Maintain consistent progress and coordinate with your co-developer. Prioritize tasks that unblock shared work and avoid unnecessary scope expansion.",
+    tags: ["Shared Workload", "Client Resources", "3 devs"],
   },
+
   {
     num: 4,
     name: "PHKitchenDuo",
@@ -520,26 +529,27 @@ const PROJECTS = [
     type: "kitchen",
     color: "#378ADD",
     engine: "Unity 2022.3",
-    team: "Team project",
+    team: "3 developers",
     client: "Team-owned",
-    sched: "1–2 sessions per week only",
+    sched: "1 session/week",
     focus:
-      "Your responsibility is scoped to a single feature or task. Don't over-invest — stay focused on your one deliverable.",
-    tags: ["One feature", "Team project", "Limited scope"],
+      "Deliver the assigned feature or task efficiently. Keep involvement limited to your agreed responsibilities and avoid spending time outside your scope.",
+    tags: ["One Feature", "Team Project", "Limited Scope"],
   },
+
   {
     num: 5,
     name: "Personal Horror Game",
-    priority: "Long-Term",
+    priority: "Long-Term / Passion Project",
     type: "horror",
     color: "#D85A30",
     engine: "Unreal Engine 5",
     team: "Solo developer",
     client: "Self-funded",
-    sched: "Fri night + Sat + Sun · Max 6–8 hours/week",
+    sched: "Weekend sessions only",
     focus:
-      "This is your passion project and portfolio piece. Work on it when inspired — don't force daily sessions. Quality over grind.",
-    tags: ["Passion project", "Portfolio", "Solo dev"],
+      "Personal portfolio and creative outlet. Work when motivated and inspired. Protect it from deadline pressure and avoid treating it like another obligation.",
+    tags: ["Passion Project", "Portfolio", "Solo Dev"],
   },
 ];
 

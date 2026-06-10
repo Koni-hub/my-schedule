@@ -478,12 +478,12 @@ const PROJECTS = [
     type: "work",
     color: "#1D9E75",
     engine: "Unreal Engine 5.7",
-    team: "Solo developer",
+    team: "Team of 4 developers",
     client: "Self-funded",
     sched: "4–5 days/week",
     focus:
-      "You are handling everything alone — coding, assets, design. This deserves the most focused time and energy in your schedule.",
-    tags: ["Coding-heavy", "Resources available", "Solo dev"],
+      "Oversee the core game play and major systems. As the lead dev, your work impacts the whole team — prioritize this above all else.",
+    tags: ["Oversee", "Resources available", "4 dev"],
   },
   {
     num: 2,

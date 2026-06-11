@@ -9,7 +9,7 @@ const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
 // Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
 
 let tokenClient;
 let accessToken = null;
@@ -128,7 +128,11 @@ async function callCalendarApi(path, options = {}) {
   const body = await res.text();
   if (!res.ok) {
     let parsed;
-    try { parsed = JSON.parse(body); } catch { parsed = {}; }
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      parsed = {};
+    }
     const err = new Error(parsed?.error?.message || `HTTP ${res.status}`);
     err.status = res.status;
     err.result = parsed;

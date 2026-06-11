@@ -82,6 +82,8 @@ function initGoogleCalendar() {
             return;
           }
 
+          gapi.client.setToken({ access_token: response.access_token });
+
           try {
             if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
               await deleteDevScheduleCalendar();

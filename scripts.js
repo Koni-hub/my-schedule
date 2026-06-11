@@ -12,6 +12,7 @@ const CALENDAR_NAME = "Dev Schedule";
 const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
 
 let tokenClient;
+let accessToken = null;
 let devScheduleCalendarId = null;
 
 const DAY_CODES = {
@@ -64,86 +65,103 @@ window.onload = async () => {
 
 function initGoogleCalendar() {
   return new Promise((resolve) => {
-    gapi.load("client", async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        discoveryDocs: [
-          "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-        ],
-      });
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: async (response) => {
+        if (response.error) {
+          console.error(response);
+          alert("Google login failed.");
+          return;
+        }
 
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPES,
-        callback: async (response) => {
-          if (response.error) {
-            console.error(response);
-            alert("Google login failed.");
+        accessToken = response.access_token;
+
+        try {
+          if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
+            await deleteDevScheduleCalendar();
+            alert(
+              "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
+            );
             return;
           }
 
-          gapi.client.setToken({ access_token: response.access_token });
+          devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
+          await deleteAllDevScheduleEvents();
+          await createRecurringRoutineEvents();
 
-          try {
-            if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
-              await deleteDevScheduleCalendar();
-              alert(
-                "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
-              );
-              return;
-            }
+          alert("Dev Schedule recurring calendar synced.");
+        } catch (err) {
+          console.error("SYNC ERROR:", err);
+          if (err?.status) console.error("STATUS:", err.status);
+          if (err?.result?.error) console.error("API ERROR:", err.result.error);
+          console.error("BODY:", err?.body);
 
-            devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
-            await deleteAllDevScheduleEvents();
-            await createRecurringRoutineEvents();
-
-            alert("Dev Schedule recurring calendar synced.");
-          } catch (err) {
-            console.error("SYNC ERROR:", err);
-            console.error("BODY:", err?.body);
-
-            alert(
-              err?.result?.error?.message ||
-                err?.body ||
-                "Sync error. Check console.",
-            );
-          }
-        },
-      });
-
-      resolve();
+          alert(
+            err?.result?.error?.message ||
+              err?.body ||
+              "Sync error. Check console.",
+          );
+        }
+      },
     });
+
+    resolve();
   });
 }
 
 function syncRecurringRoutineToGoogle() {
   if (!tokenClient) return;
-  tokenClient.requestAccessToken({ prompt: "" });
+  tokenClient.requestAccessToken({ prompt: "consent" });
+}
+
+async function callCalendarApi(path, options = {}) {
+  const url = `https://www.googleapis.com/calendar/v3${path}`;
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const body = await res.text();
+  if (!res.ok) {
+    let parsed;
+    try { parsed = JSON.parse(body); } catch { parsed = {}; }
+    const err = new Error(parsed?.error?.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.result = parsed;
+    err.body = body;
+    throw err;
+  }
+  return body ? JSON.parse(body) : {};
 }
 
 async function getOrCreateDevScheduleCalendar() {
-  const calendars = await gapi.client.calendar.calendarList.list();
+  const data = await callCalendarApi("/users/me/calendarList");
 
-  const existing = calendars.result.items.find(
+  const existing = (data.items || []).find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
   if (existing) return existing.id;
 
-  const created = await gapi.client.calendar.calendars.insert({
-    resource: {
+  const created = await callCalendarApi("/calendars", {
+    method: "POST",
+    body: JSON.stringify({
       summary: CALENDAR_NAME,
       timeZone: TIME_ZONE,
-    },
+    }),
   });
 
-  return created.result.id;
+  return created.id;
 }
 
 async function deleteDevScheduleCalendar() {
-  const calendars = await gapi.client.calendar.calendarList.list();
+  const data = await callCalendarApi("/users/me/calendarList");
 
-  const existing = calendars.result.items.find(
+  const existing = (data.items || []).find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
@@ -152,8 +170,8 @@ async function deleteDevScheduleCalendar() {
     return;
   }
 
-  await gapi.client.calendar.calendars.delete({
-    calendarId: existing.id,
+  await callCalendarApi(`/calendars/${encodeURIComponent(existing.id)}`, {
+    method: "DELETE",
   });
 }
 
@@ -161,23 +179,20 @@ async function deleteAllDevScheduleEvents() {
   let pageToken = null;
 
   do {
-    const result = await gapi.client.calendar.events.list({
-      calendarId: devScheduleCalendarId,
-      maxResults: 2500,
-      singleEvents: false,
-      pageToken,
-    });
+    let path = `/calendars/${encodeURIComponent(devScheduleCalendarId)}/events?maxResults=2500&singleEvents=false`;
+    if (pageToken) path += `&pageToken=${pageToken}`;
 
-    const events = result.result.items || [];
+    const data = await callCalendarApi(path);
+    const events = data.items || [];
 
     for (const event of events) {
-      await gapi.client.calendar.events.delete({
-        calendarId: devScheduleCalendarId,
-        eventId: event.id,
-      });
+      await callCalendarApi(
+        `/calendars/${encodeURIComponent(devScheduleCalendarId)}/events/${encodeURIComponent(event.id)}`,
+        { method: "DELETE" },
+      );
     }
 
-    pageToken = result.result.nextPageToken;
+    pageToken = data.nextPageToken;
   } while (pageToken);
 }
 
@@ -228,38 +243,30 @@ async function insertRecurringEvent(dayName, block) {
     endAddDays = 1;
   }
 
+  const body = {
+    summary: block.label,
+    description: block.sub || "From Dev Schedule",
+    colorId: block.googleColorId || undefined,
+    start: {
+      dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
+      timeZone: TIME_ZONE,
+    },
+    end: {
+      dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
+      timeZone: TIME_ZONE,
+    },
+    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
+    reminders: {
+      useDefault: false,
+      overrides: [{ method: "popup", minutes: 5 }],
+    },
+  };
+
   try {
-    await gapi.client.calendar.events.insert({
-      calendarId: devScheduleCalendarId,
-
-      resource: {
-        summary: block.label,
-        description: block.sub || "From Dev Schedule",
-        colorId: block.googleColorId || undefined,
-
-        start: {
-          dateTime: makeManilaDateTime(baseDate, block.sh, block.sm),
-          timeZone: TIME_ZONE,
-        },
-
-        end: {
-          dateTime: makeManilaDateTime(baseDate, endHour, block.em, endAddDays),
-          timeZone: TIME_ZONE,
-        },
-
-        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${DAY_CODES[dayName]}`],
-
-        reminders: {
-          useDefault: false,
-          overrides: [
-            {
-              method: "popup",
-              minutes: 5,
-            },
-          ],
-        },
-      },
-    });
+    await callCalendarApi(
+      `/calendars/${encodeURIComponent(devScheduleCalendarId)}/events`,
+      { method: "POST", body: JSON.stringify(body) },
+    );
 
     console.log("Created:", block.label);
   } catch (err) {

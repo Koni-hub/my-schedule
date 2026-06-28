@@ -9,7 +9,7 @@ const TIME_ZONE = "Asia/Manila";
 const CALENDAR_NAME = "Dev Schedule";
 
 // Change to true ONLY if you want to delete the whole Dev Schedule calendar once.
-const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = false;
+const DELETE_DEV_SCHEDULE_CALENDAR_FIRST = true;
 
 let tokenClient;
 let accessToken = null;
@@ -363,51 +363,7 @@ function buildDailyBlocks(dayName) {
     {
       sh: 7,
       sm: 0,
-      eh: 16,
-      em: 0,
-      label: "Class / School",
-      sub: "No class? → rest, study, or freelance tasks",
-      type: "school",
-      color: "#378ADD",
-      googleColorId: GOOGLE_COLOR_IDS.school,
-    },
-    {
-      sh: 16,
-      sm: 0,
-      eh: 17,
-      em: 0,
-      label: "Free Time / Gap",
-      sub: "Wind down between school and evening",
-      type: "gap",
-      color: "#5e5d5a",
-      googleColorId: GOOGLE_COLOR_IDS.gap,
-    },
-    {
-      sh: 17,
-      sm: 0,
-      eh: 19,
-      em: 0,
-      label: "Dinner + Rest",
-      sub: "Recharge before evening work",
-      type: "routine",
-      color: "#888780",
-      googleColorId: GOOGLE_COLOR_IDS.routine,
-    },
-    {
-      sh: 20,
-      sm: 0,
-      eh: 20,
-      em: 30,
-      label: "Learn Chinese",
-      sub: "Study vocabulary, listening, and speaking practice",
-      type: "learning",
-      color: "#6C63FF",
-      googleColorId: GOOGLE_COLOR_IDS.learning,
-    },
-    {
-      sh: 21,
-      sm: 0,
-      eh: 23,
+      eh: 9,
       em: 30,
       label: f.main,
       sub: "Highest-priority project focus",
@@ -416,15 +372,59 @@ function buildDailyBlocks(dayName) {
       googleColorId: GOOGLE_COLOR_IDS[f.mainType] || GOOGLE_COLOR_IDS.work,
     },
     {
-      sh: 23,
+      sh: 9,
       sm: 30,
-      eh: 24,
+      eh: 11,
+      em: 30,
+      label: "Break",
+      sub: "Wind down and recharge before secondary focus",
+      type: "gap",
+      color: "#5e5d5a",
+      googleColorId: GOOGLE_COLOR_IDS.gap,
+    },
+    {
+      sh: 11,
+      sm: 30,
+      eh: 13,
       em: 0,
       label: f.sec,
       sub: "Secondary project focus",
       type: f.secType,
       color: PROJ_COLORS[f.secType] || "#EF9F27",
       googleColorId: GOOGLE_COLOR_IDS[f.secType] || GOOGLE_COLOR_IDS.rest,
+    },
+    {
+      sh: 13,
+      sm: 0,
+      eh: 20,
+      em: 0,
+      label: "Free Time / Gap",
+      sub: "Wind down between school and evening",
+      type: "gap",
+      color: "#5e5d5a",
+      googleColorId: GOOGLE_COLOR_IDS.gap,
+    },
+    {
+      sh: 20,
+      sm: 0,
+      eh: 21,
+      em: 30,
+      label: "Dinner / Rest",
+      sub: "Eat and relax before evening work session",
+      type: "routine",
+      color: "#888780",
+      googleColorId: GOOGLE_COLOR_IDS.routine,
+    },
+    {
+      sh: 21,
+      sm: 30,
+      eh: 22,
+      em: 0,
+      label: "Learn Chinese",
+      sub: "Study vocabulary, listening, and speaking practice",
+      type: "learning",
+      color: "#6C63FF",
+      googleColorId: GOOGLE_COLOR_IDS.learning,
     },
   ];
 }
@@ -629,7 +629,7 @@ function renderTimeline() {
       const isLast = i === display.length - 1;
       const isActive = active && active.label === b.label;
 
-      const startLabel = b.label === "Sleep" ? "12:00 AM" : fmtH(b.sh, b.sm);
+      const startLabel = b.label === "Sleep" ? "10:00 PM" : fmtH(b.sh, b.sm);
       const endLabel =
         b.label === "Sleep" ? "5:00 AM" : fmtH(normalizeHour(b.eh), b.em);
 
@@ -743,12 +743,12 @@ function renderDayDetail(day) {
     </div>
     <div class="detail-rows">
       <div class="detail-row">
-        <div class="detail-row-time">9:00 PM – 11:30 PM</div>
+        <div class="detail-row-time">7:00 AM –9:30 AM</div>
         <div class="detail-row-name" style="color:${mc}">${f.main}</div>
         <div class="detail-row-badge" style="color:${mc};background:${mc}22;border-color:${mc}44">Main Focus</div>
       </div>
       <div class="detail-row">
-        <div class="detail-row-time">11:30 PM – 12:00 AM</div>
+        <div class="detail-row-time">11:00 AM – 1:00 PM</div>
         <div class="detail-row-name" style="color:${sc}">${f.sec}</div>
         <div class="detail-row-badge" style="color:${sc};background:${sc}22;border-color:${sc}44">Secondary</div>
       </div>

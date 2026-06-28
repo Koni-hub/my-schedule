@@ -1,8 +1,8 @@
 // ==================== GOOGLE CALENDAR RECURRING SYNC ====================
 
 const CLIENT_ID =
-  "164186564132-176l4unvn16dtt4qc028t4rirv9nhd2n.apps.googleusercontent.com";
-const API_KEY = "AIzaSyD__3OJHOVkVvvDGiUjqg__zqcCH9pYAU0";
+  "599472177369-f2jnhleeaieslv7s74r0hg13oi6aivj8.apps.googleusercontent.com";
+const API_KEY = "AIzaSyAjyqhQxib4AW9KLzIHZocS1G95Mxdvy6w";
 
 const SCOPES = "https://www.googleapis.com/auth/calendar";
 const TIME_ZONE = "Asia/Manila";

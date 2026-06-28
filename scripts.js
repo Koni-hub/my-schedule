@@ -163,20 +163,31 @@ async function getOrCreateDevScheduleCalendar() {
 }
 
 async function deleteDevScheduleCalendar() {
-  const data = await callCalendarApi("/users/me/calendarList");
+  let data;
+  try {
+    data = await callCalendarApi("/users/me/calendarList");
+  } catch {
+    console.warn("Failed to fetch calendar list for deletion.");
+    return;
+  }
 
   const existing = (data.items || []).find(
     (calendar) => calendar.summary === CALENDAR_NAME,
   );
 
   if (!existing) {
-    alert("No Dev Schedule calendar found.");
+    console.log("No Dev Schedule calendar found to delete.");
     return;
   }
 
-  await callCalendarApi(`/calendars/${encodeURIComponent(existing.id)}`, {
-    method: "DELETE",
-  });
+  try {
+    await callCalendarApi(`/calendars/${encodeURIComponent(existing.id)}`, {
+      method: "DELETE",
+    });
+    console.log("Dev Schedule calendar deleted.");
+  } catch (err) {
+    console.warn("Calendar delete failed (likely already deleted):", err.status);
+  }
 }
 
 async function deleteAllDevScheduleEvents() {

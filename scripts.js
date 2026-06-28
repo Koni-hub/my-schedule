@@ -79,11 +79,14 @@ function initGoogleCalendar() {
 
         try {
           if (DELETE_DEV_SCHEDULE_CALENDAR_FIRST) {
-            await deleteDevScheduleCalendar();
-            alert(
-              "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
-            );
-            return;
+            const deleted = await deleteDevScheduleCalendar();
+            if (deleted) {
+              alert(
+                "Dev Schedule calendar deleted. Set DELETE_DEV_SCHEDULE_CALENDAR_FIRST back to false.",
+              );
+              return;
+            }
+            console.log("Delete failed — proceeding with existing calendar.");
           }
 
           devScheduleCalendarId = await getOrCreateDevScheduleCalendar();
@@ -168,7 +171,7 @@ async function deleteDevScheduleCalendar() {
     data = await callCalendarApi("/users/me/calendarList");
   } catch {
     console.warn("Failed to fetch calendar list for deletion.");
-    return;
+    return false;
   }
 
   const existing = (data.items || []).find(
@@ -177,7 +180,7 @@ async function deleteDevScheduleCalendar() {
 
   if (!existing) {
     console.log("No Dev Schedule calendar found to delete.");
-    return;
+    return false;
   }
 
   try {
@@ -185,8 +188,10 @@ async function deleteDevScheduleCalendar() {
       method: "DELETE",
     });
     console.log("Dev Schedule calendar deleted.");
+    return true;
   } catch (err) {
-    console.warn("Calendar delete failed (likely already deleted):", err.status);
+    console.warn("Calendar delete failed:", err.status);
+    return false;
   }
 }
 
